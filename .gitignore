@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Testing
+tests/
+coverage/
+
+# Production
+build/
+dist/
+
+# Misc
+.DS_Store
+*.log
+
+# IDE
+.idea/
+.vscode/
+
+# OpenCode
+.opencode/
+.sisyphus/
+
+# Bun
+bun.lockb
+
+# Test artifacts in packages
+packages/*/bun.lock
+packages/*/node_modules/
