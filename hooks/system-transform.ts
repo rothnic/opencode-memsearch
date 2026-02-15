@@ -40,15 +40,46 @@ export const onSystemTransform = async (input: any, output: any, ctx: PluginInpu
       if (!source.enabled) continue;
 
       try {
+        const topK = source.search.groupBySource
+          ? source.search.maxResults * 5
+          : source.search.maxResults;
+
         const searchResults = await cli.search(query, {
           collection: source.collection || source.pathOrCollection,
-          topK: source.search.maxResults,
+          topK,
           minScore: source.search.minScore || 0.01,
           filter: source.search.filter,
         });
 
         if (searchResults.results && searchResults.results.length > 0) {
-          const formattedResults = searchResults.results
+          let resultsToProcess = searchResults.results;
+
+          if (source.search.groupBySource) {
+            const groups = new Map<string, typeof resultsToProcess>();
+            for (const r of resultsToProcess) {
+              const uri = r.source?.uri || r.source?.name || "unknown";
+              if (!groups.has(uri)) {
+                groups.set(uri, []);
+              }
+              groups.get(uri)!.push(r);
+            }
+
+            const sortedGroups = Array.from(groups.entries()).sort((a, b) => {
+              const scoreA = Math.max(...a[1].map((r) => r.score));
+              const scoreB = Math.max(...b[1].map((r) => r.score));
+              return scoreB - scoreA;
+            });
+
+            const topGroups = sortedGroups.slice(0, source.search.maxResults);
+
+            resultsToProcess = topGroups.flatMap(([_, chunks]) => {
+              return chunks
+                .sort((a, b) => b.score - a.score)
+                .slice(0, source.search.maxChunksPerSource || 1);
+            });
+          }
+
+          const formattedResults = resultsToProcess
             .map((r) => {
               const rawContent = r.content.trim();
               const content = rawContent.length > source.injection.maxContentLength

@@ -134,6 +134,10 @@ export interface MemorySource {
     minScore?: number;
     /** Custom filter expression */
     filter?: string;
+    /** Whether to group results by source URI (useful for skills/docs) */
+    groupBySource?: boolean;
+    /** Maximum chunks per unique source (if groupBySource is enabled) */
+    maxChunksPerSource?: number;
   };
   /** How to format results from this source in injection */
   injection: {

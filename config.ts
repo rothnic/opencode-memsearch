@@ -21,6 +21,8 @@ const MemorySourceSchema = z.object({
     maxResults: z.number().int().positive(),
     minScore: z.number().min(0).max(1).optional(),
     filter: z.string().optional(),
+    groupBySource: z.boolean().optional(),
+    maxChunksPerSource: z.number().int().positive().optional(),
   }),
   injection: z.object({
     template: z.string(),
@@ -76,7 +78,11 @@ function getDefaultSources(workdir: string): MemorySource[] {
       pathOrCollection: globalSkillsPath,
       collection: "memsearch_global_skills",
       enabled: existsSync(globalSkillsPath),
-      search: { maxResults: 3 },
+      search: {
+        maxResults: 5,
+        groupBySource: true,
+        maxChunksPerSource: 3,
+      },
       injection: {
         template: "## Relevant Skills (Global)\n{{content}}",
         maxContentLength: 800,
@@ -88,7 +94,11 @@ function getDefaultSources(workdir: string): MemorySource[] {
       pathOrCollection: projectSkillsPath,
       collection: "memsearch_project_skills",
       enabled: existsSync(projectSkillsPath),
-      search: { maxResults: 3 },
+      search: {
+        maxResults: 5,
+        groupBySource: true,
+        maxChunksPerSource: 3,
+      },
       injection: {
         template: "## Project Skills\n{{content}}",
         maxContentLength: 800,
