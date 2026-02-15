@@ -37,7 +37,7 @@ export class MemsearchCLI {
   async checkAvailability(): Promise<boolean> {
     if (this.isAvailable !== null) return this.isAvailable;
     try {
-      const result = await this.shell`sh -c "memsearch --version"`.quiet();
+      const result = await this.shell`sh -c "python3 -m memsearch --version"`.quiet();
       this.isAvailable = result.exitCode === 0;
       return this.isAvailable;
     } catch {
@@ -102,26 +102,26 @@ export class MemsearchCLI {
 
   async watch(path: string): Promise<void> {
     await this.ensureAvailable();
-    await this.shell`sh -c "memsearch watch ${path}"`.throws(true);
+    await this.shell`sh -c "python3 -m memsearch watch ${path}"`.throws(true);
   }
 
   async compact(): Promise<string> {
     await this.ensureAvailable();
     // Run memsearch compact and return its stdout as the compaction summary.
     // Use .text() so we capture the summary content produced by memsearch.
-    const output = await this.shell`sh -c "memsearch compact"`.text();
+    const output = await this.shell`sh -c "python3 -m memsearch compact"`.text();
     return output;
   }
 
   async expand(query: string): Promise<ExpandResult[]> {
     await this.ensureAvailable();
-    const output = await this.shell`sh -c "memsearch expand ${query} --json"`.text();
+    const output = await this.shell`sh -c "python3 -m memsearch expand ${query} --json-output"`.text();
     return JSON.parse(output) as ExpandResult[];
   }
 
   async transcript(sessionId: string): Promise<TranscriptEntry[]> {
     await this.ensureAvailable();
-    const output = await this.shell`sh -c "memsearch transcript ${sessionId} --json"`.text();
+    const output = await this.shell`sh -c "python3 -m memsearch transcript ${sessionId} --json-output"`.text();
     return JSON.parse(output) as TranscriptEntry[];
   }
 
@@ -130,7 +130,7 @@ export class MemsearchCLI {
   async config(action: "get" | "set", key?: string, value?: string): Promise<Partial<MemsearchConfig> | void> {
     await this.ensureAvailable();
     if (action === "get") {
-      let cmd = "memsearch config get --json";
+      let cmd = "memsearch config get --json-output";
       if (key) cmd += ` ${key}`;
       const output = await this.shell`sh -c ${cmd}`.text();
       return JSON.parse(output) as Partial<MemsearchConfig>;
@@ -138,13 +138,13 @@ export class MemsearchCLI {
       if (!key || value === undefined) {
         throw new Error("Key and value are required for config set");
       }
-      await this.shell`sh -c "memsearch config set ${key} ${value}"`.throws(true);
+      await this.shell`sh -c "python3 -m memsearch config set ${key} ${value}"`.throws(true);
     }
   }
 
   async stats(): Promise<MemsearchStats> {
     await this.ensureAvailable();
-    const output = await this.shell`sh -c "memsearch stats --json"`.text();
+    const output = await this.shell`sh -c "python3 -m memsearch stats --json-output"`.text();
     const trimmed = output.trim();
     if (!trimmed) {
       return { documentCount: 0, chunkCount: 0, indexSize: 0 };
@@ -154,7 +154,7 @@ export class MemsearchCLI {
 
   async reset(): Promise<void> {
     await this.ensureAvailable();
-    await this.shell`sh -c "memsearch reset --force"`.throws(true);
+    await this.shell`sh -c "python3 -m memsearch reset --force"`.throws(true);
   }
 
   async version(): Promise<string> {
@@ -162,7 +162,7 @@ export class MemsearchCLI {
     // We don't call ensureAvailable() because the version command itself
     // is the availability probe and may throw if the binary is missing.
     try {
-      const output = await this.shell`sh -c "memsearch --version"`.text();
+      const output = await this.shell`sh -c "python3 -m memsearch --version"`.text();
       return output.trim();
     } catch (err) {
       // Normalize to a consistent error when the binary isn't present.

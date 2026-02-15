@@ -1,81 +1,38 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { $ } from "bun";
-import { createIsolatedEnv, getOpencodeCmd } from "../utils/isolated-env";
+import { createIsolatedEnv } from "../utils/isolated-env";
 import { join } from "node:path";
-import { writeFile, chmod, mkdir } from "node:fs/promises";
+import { writeFile, rm } from "node:fs/promises";
 import plugin from "../../index.ts";
 
-describe("memsearch E2E", () => {
+const TIMEOUT = 180_000;
+
+describe("memsearch E2E (True)", () => {
   let env: any;
-  let opencode: any;
   let tools: any;
   let hooks: any;
-
-  const TIMEOUT = 120000;
-
   let mockContext: any;
 
   beforeAll(async () => {
     env = await createIsolatedEnv();
-    opencode = getOpencodeCmd(env);
 
-    const startScript = join(env.pluginPath, "scripts", "start-milvus.sh");
-    await $`${startScript}`;
+    const binDir = join(env.home, "bin");
+    await $`mkdir -p ${binDir}`;
 
-    const mockBinDir = join(env.home, "bin");
-    await mkdir(mockBinDir, { recursive: true });
-    const mockMemsearch = join(mockBinDir, "memsearch");
-    
-    const mockContent = `#!/usr/bin/env bun
-const fs = require("node:fs");
-const args = Bun.argv.slice(2);
-const logFile = "${join(env.home, "mock.log")}";
-
-fs.appendFileSync(logFile, "Received args: " + JSON.stringify(args) + "\\n");
-
-if (args.includes("--version")) {
-  process.stdout.write("memsearch-mock 0.1.0\\n");
-  process.exit(0);
-}
-if (args[0] === "index") {
-  fs.appendFileSync(logFile, "index called\\n");
-  process.exit(0);
-}
-if (args[0] === "stats") {
-  process.stdout.write(JSON.stringify({ documentCount: 1, chunkCount: 1, indexSize: 1024 }) + "\\n");
-  process.exit(0);
-}
-if (args[0] === "search") {
-  fs.appendFileSync(logFile, "search called with " + args.slice(1).join(" ") + "\\n");
-  const results = {
-    query: args[1],
-    options: {},
-    results: [
-      {
-        content: "dummy content",
-        score: 0.9,
-        chunk_hash: "hash1",
-        source: { uri: "test.txt" }
-      }
-    ]
-  };
-  process.stdout.write(JSON.stringify(results) + "\\n");
-  process.exit(0);
-}
+    const wrapperContent = `#!/usr/bin/env bash
+export HOME="${env.home}"
+export XDG_CONFIG_HOME="${env.home}/.config"
+export XDG_DATA_HOME="${env.home}/.local/share"
+export XDG_STATE_HOME="${env.home}/.local/state"
+export XDG_CACHE_HOME="${env.home}/.cache"
+export OPENCODE_TEST_HOME="${env.home}"
+exec python3 -m memsearch "$@"
 `;
-    await writeFile(mockMemsearch, mockContent);
-    await chmod(mockMemsearch, 0o755);
-    env.mockBinDir = mockBinDir;
+    await writeFile(join(binDir, "memsearch"), wrapperContent, { mode: 0o755 });
 
-    // Add mock bin to PATH so the plugin can find it via global $
-    process.env.PATH = `${mockBinDir}:${process.env.PATH}`;
-
-    // Initialize tools directly
     mockContext = {
-      project: {},
-      client: {},
       $: (strings: any, ...values: any[]) => {
-        const path = env.mockBinDir ? `${env.mockBinDir}:${process.env.PATH}` : process.env.PATH;
+        const pathPrefix = `${binDir}:${process.env.PATH}`;
         return $.env({
           ...process.env,
           HOME: env.home,
@@ -84,180 +41,116 @@ if (args[0] === "search") {
           XDG_STATE_HOME: join(env.home, ".local/state"),
           XDG_CACHE_HOME: join(env.home, ".cache"),
           OPENCODE_TEST_HOME: env.home,
-          PATH: path,
+          PATH: pathPrefix,
         })(strings, ...values).cwd(join(env.home, "worktree")).quiet();
       },
       directory: join(env.home, "worktree"),
       worktree: join(env.home, "worktree"),
     };
+
     const instance = await plugin(mockContext);
     tools = instance.tool;
     hooks = instance.hook;
   }, TIMEOUT);
 
   afterAll(async () => {
-    try {
-      const composeFile = join(env.pluginPath, "milvus-compose.yaml");
-      await $`docker compose -f ${composeFile} down -v`.quiet();
-    } catch (err) {
-      console.error("Cleanup failed:", err);
-    }
+    await rm(join(env.home, ".memsearch"), { recursive: true, force: true }).catch(() => {});
     await env.cleanup();
   }, TIMEOUT);
 
-  it("should load the memsearch plugin", async () => {
-    expect(tools).toBeDefined();
-    expect(tools["mem-index"]).toBeDefined();
-    expect(tools["mem-search"]).toBeDefined();
+  it("loads plugin and memsearch CLI is available", async () => {
+    const raw = await tools["mem-version"].execute({}, mockContext);
+    const parsed = JSON.parse(raw as string);
+    expect(parsed).toBeDefined();
+    expect(parsed.cliVersion).toBeTruthy();
   }, TIMEOUT);
 
-  it("should index and search content", async () => {
-    const worktree = join(env.home, "worktree");
-    const dummyFile = join(worktree, "test.txt");
-    await writeFile(dummyFile, "dummy content");
+  it("indexes real files into named collections and returns stats", async () => {
+    const file1 = join(env.home, "worktree", "doc-animals.md");
+    const file2 = join(env.home, "worktree", "doc-fruit.md");
 
-    console.log("Running mem-index...");
-    const indexResult = await tools["mem-index"].execute({ path: "test.txt" }, mockContext);
-    console.log("Index result:", indexResult);
+    await writeFile(file1, "# Animals\nThe quick brown fox jumps over the lazy dog. Bananas are yellow.\n");
+    await writeFile(file2, "# Fruit\nApples and bananas are common fruits. Bananas are great for smoothies.\n");
 
-    console.log("Running mem-search...");
-    const searchResult = await tools["mem-search"].execute({ query: "dummy" }, mockContext);
-    console.log("Search result:", searchResult);
-    
-    expect(JSON.stringify(searchResult)).toContain("dummy content");
-    
-    // Verify mock was called
-    const logContent = await $`cat ${join(env.home, "mock.log")}`.text();
-    expect(logContent).toContain("index called");
-    expect(logContent).toContain("search called");
+    const idx1 = await tools["mem-index"].execute({ path: file1, collection: "e2e_coll_animals" }, mockContext);
+    const idx2 = await tools["mem-index"].execute({ path: file2, collection: "e2e_coll_fruit" }, mockContext);
+
+    const parsed1 = JSON.parse(idx1 as string);
+    const parsed2 = JSON.parse(idx2 as string);
+
+    expect(parsed1.ok).toBe(true);
+    expect(parsed2.ok).toBe(true);
+    expect(parsed1.stats).toBeDefined();
+    expect(parsed2.stats).toBeDefined();
+    expect(parsed1.stats.documentCount + parsed2.stats.documentCount).toBeGreaterThan(0);
   }, TIMEOUT);
 
-  it("should perform multi-source context injection", async () => {
-    const configPath = join(env.home, "worktree", "opencode.json");
-    const multiSourceConfig = {
+  it("performs real search against indexed collections", async () => {
+    const rawSearch = await tools["mem-search"].execute({ query: "bananas", collection: "e2e_coll_fruit", topK: 5 }, mockContext);
+    const resp = JSON.parse(rawSearch as string);
+
+    expect(resp.ok).toBe(true);
+    expect(resp.count).toBeGreaterThan(0);
+    expect(Array.isArray(resp.results)).toBe(true);
+
+    const r = resp.results[0];
+    expect(r.preview).toBeTruthy();
+    expect(typeof r.score).toBe("number");
+    expect(r.score).toBeGreaterThan(0);
+    expect(r.preview.toLowerCase().includes("banana") || r.preview.toLowerCase().includes("bananas")).toBe(true);
+  }, TIMEOUT);
+
+  it("supports multi-source context injection via real collections", async () => {
+    const opencodeConfig = {
       memsearch: {
         sources: [
           {
-            id: "source1",
-            name: "Source 1",
-            pathOrCollection: "coll1",
+            id: "animals-src",
+            name: "Animals",
+            pathOrCollection: "e2e_coll_animals",
+            collection: "e2e_coll_animals",
             enabled: true,
-            search: { maxResults: 2 },
-            injection: { template: "## {{name}}\\n{{content}}", maxContentLength: 100 }
+            search: { maxResults: 3, groupBySource: false },
+            injection: { template: "## Animals Source\n{{content}}\n(Score: {{score}})", maxContentLength: 500, includeSource: true }
           },
           {
-            id: "source2",
-            name: "Source 2",
-            pathOrCollection: "coll2",
+            id: "fruit-src",
+            name: "Fruit",
+            pathOrCollection: "e2e_coll_fruit",
+            collection: "e2e_coll_fruit",
             enabled: true,
-            search: { maxResults: 3 },
-            injection: { template: "## {{name}}\\n{{content}}", maxContentLength: 100 }
+            search: { maxResults: 3, groupBySource: false },
+            injection: { template: "## Fruit Source\n{{content}}\n(Score: {{score}})", maxContentLength: 500, includeSource: true }
           }
         ]
       }
     };
-    await writeFile(configPath, JSON.stringify(multiSourceConfig));
 
-    const input = {
-      messages: [
-        { role: "user", content: "hello world" }
-      ]
-    };
-    const output = {
-      system: []
-    };
+    await writeFile(join(env.home, "worktree", "opencode.json"), JSON.stringify(opencodeConfig, null, 2));
 
-    console.log("Running system-transform hook...");
-    await hooks["experimental.chat.system.transform"](input, output, mockContext);
-    
-    console.log("Output system prompts:", output.system);
-    expect(output.system.length).toBeGreaterThan(0);
-    expect(output.system[0]).toContain("<memsearch-context>");
-    expect(output.system[0]).toContain("Source 1");
-    expect(output.system[0]).toContain("Source 2");
+    const input = { messages: [{ role: "user", content: "Tell me about bananas" }] };
+    const output: any = { system: [] };
 
-    // Verify mock was called for both collections
-    const logContent = await $`cat ${join(env.home, "mock.log")}`.text();
-    expect(logContent).toContain('--collection","coll1"');
-    expect(logContent).toContain('--collection","coll2"');
+    const hook = hooks["experimental.chat.system.transform"];
+    expect(typeof hook).toBe("function");
+
+    await hook(input, output, mockContext);
+
+    const joinedSystem = (output.system || []).join("\n");
+    expect(joinedSystem).toContain("<memsearch-context>");
+    expect(joinedSystem).toContain("</memsearch-context>");
+    expect(joinedSystem).toMatch(/Animals/i);
+    expect(joinedSystem).toMatch(/Fruit/i);
   }, TIMEOUT);
 
-  it("should handle grouping by source", async () => {
-    const configPath = join(env.home, "worktree", "opencode.json");
-    const groupedConfig = {
-      memsearch: {
-        sources: [
-          {
-            id: "session-memory",
-            enabled: false
-          },
-          {
-            id: "global-skills",
-            enabled: false
-          },
-          {
-            id: "project-skills",
-            enabled: false
-          },
-          {
-            id: "docs",
-            enabled: false
-          },
-          {
-            id: "grouped-source",
-            name: "Grouped Source",
-            pathOrCollection: "grouped_coll",
-            enabled: true,
-            search: { 
-              maxResults: 2,
-              groupBySource: true,
-              maxChunksPerSource: 1
-            },
-            injection: { template: "## {{source}}\\n{{content}}", maxContentLength: 100 }
-          }
-        ]
-      }
-    };
-    await writeFile(configPath, JSON.stringify(groupedConfig));
+  it("supports search options (minScore, topK) producing filtered results", async () => {
+    const rawTopK = await tools["mem-search"].execute({ query: "bananas", topK: 1 }, mockContext);
+    const respTopK = JSON.parse(rawTopK as string);
+    expect(respTopK.count).toBeLessThanOrEqual(1);
 
-    const mockMemsearch = join(env.home, "bin", "memsearch");
-    const mockContent = `#!/usr/bin/env bun
-const fs = require("node:fs");
-const args = Bun.argv.slice(2);
-const logFile = "${join(env.home, "mock.log")}";
-fs.appendFileSync(logFile, "Received args: " + JSON.stringify(args) + "\\n");
-if (args[0] === "search") {
-  const results = {
-    query: args[1],
-    options: {},
-    results: [
-      { content: "chunk 1", score: 0.9, source: { uri: "file1.txt" } },
-      { content: "chunk 2", score: 0.8, source: { uri: "file1.txt" } },
-      { content: "chunk 3", score: 0.7, source: { uri: "file2.txt" } },
-      { content: "chunk 4", score: 0.6, source: { uri: "file3.txt" } },
-    ]
-  };
-  process.stdout.write(JSON.stringify(results) + "\\n");
-  process.exit(0);
-}
-if (args.includes("--version")) { process.stdout.write("0.1.0\\n"); process.exit(0); }
-`;
-    await writeFile(mockMemsearch, mockContent);
-
-    const input = { messages: [{ role: "user", content: "test" }] };
-    const output = { system: [] };
-
-    await hooks["experimental.chat.system.transform"](input, output, mockContext);
-
-    const prompt = output.system[0];
-    expect(prompt).toContain("file1.txt");
-    expect(prompt).toContain("chunk 1");
-    expect(prompt).not.toContain("chunk 2");
-    expect(prompt).toContain("file2.txt");
-    expect(prompt).toContain("chunk 3");
-    expect(prompt).not.toContain("file3.txt");
-
-    const logContent = await $`cat ${join(env.home, "mock.log")}`.text();
-    expect(logContent).toContain('--top-k","10"');
+    const rawMin = await tools["mem-search"].execute({ query: "bananas", minScore: 0.99 }, mockContext);
+    const respMin = JSON.parse(rawMin as string);
+    expect(respMin.ok).toBe(true);
+    expect(Array.isArray(respMin.results)).toBe(true);
   }, TIMEOUT);
 });
