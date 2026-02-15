@@ -14,6 +14,8 @@ dist/
 # Misc
 .DS_Store
 *.log
+.env
+.env.*
 
 # IDE
 .idea/
@@ -26,6 +28,8 @@ dist/
 # Bun
 bun.lockb
 
-# Test artifacts in packages
-packages/*/bun.lock
+# Package artifacts
 packages/*/node_modules/
+
+# memsearch
+.memsearch/
