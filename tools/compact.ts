@@ -1,13 +1,14 @@
 import { tool } from "@opencode-ai/plugin";
 import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
-
-const cli = new MemsearchCLI();
+import type { MemsearchToolContext } from "../types";
 
 export const memCompactTool = tool({
   description: "Run memsearch compaction and return the LLM-produced summary",
   args: {},
   async execute(_args, _context) {
+    const context = _context as MemsearchToolContext;
     try {
+      const cli = new MemsearchCLI(context.$);
       const summary = await cli.compact();
 
       // Return a JSON-serializable string result as required by the tool SDK.

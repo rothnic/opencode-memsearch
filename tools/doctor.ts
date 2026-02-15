@@ -1,18 +1,19 @@
 import { tool } from "@opencode-ai/plugin";
 import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
 import loadConfig from "../config";
+import type { MemsearchToolContext } from "../types";
 import fs from "fs";
 import path from "path";
-
-const cli = new MemsearchCLI();
 
 type Check = { name: string; ok: boolean; detail?: string; fix?: string };
 
 export default tool({
   description: "Run diagnostic checks for memsearch plugin and environment",
   args: {},
-  async execute(_args, ctx) {
-    const workdir = ctx.directory ?? process.cwd();
+  async execute(_args, _context) {
+    const context = _context as MemsearchToolContext;
+    const workdir = context.directory ?? process.cwd();
+    const cli = new MemsearchCLI(context.$);
 
     const checks: Check[] = [];
 
@@ -100,12 +101,8 @@ export default tool({
 
     // 4) Can `pip show memsearch` find the package?
     try {
-      // Use bun $ to run shell commands
-      // Dynamically import to avoid top-level bun $ in environments without Bun
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { $ } = require("bun");
       try {
-        const res = await $`pip show memsearch`.quiet();
+        const res = await context.$`pip show memsearch`.quiet();
         const found = res.exitCode === 0 && res.stdout && String(res.stdout).trim().length > 0;
         if (found) {
           checks.push({ name: "pip_package", ok: true, detail: "pip package 'memsearch' is installed" });

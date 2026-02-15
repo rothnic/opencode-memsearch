@@ -28,6 +28,7 @@ The plugin registers the following tools (all return JSON-serializable string re
   - Args:
     - path (string) — Path to index (file or directory)
     - recursive (boolean, optional) — Whether to index recursively
+    - collection (string, optional) — Target collection name (e.g. "my_docs")
   - Behavior: Calls `memsearch index <path>` and returns a small stats summary (via the CLI `stats` call). If memsearch is not installed the tool returns an error object with guidance.
 
 - /mem-search
@@ -84,36 +85,114 @@ The plugin registers the following tools (all return JSON-serializable string re
 
 Note on errors: All tools that rely on the memsearch CLI detect if the binary is missing and return a structured error with the message: "memsearch CLI not found. Please install it with: pip install memsearch". The plugin defines a MemsearchNotFoundError for programmatic handling.
 
-## Configuration (opencode.json)
+## Multi-Source Context Injection
 
-The plugin reads memsearch configuration from your project's opencode.json under the `memsearch` key. The plugin has sensible defaults; call loadConfig(workdir) to see final merged values. The available options are:
+The plugin supports a powerful multi-source RAG (Retrieval-Augmented Generation) loop that automatically enriches the AI's system prompt with relevant context from various sources.
 
-- memoryDirectory (string) — Directory where memory / index files are stored. Default: <workdir>/memsearch_data
-- embeddingProvider ("openai" | "local" | "cohere" | "huggingface" | "ollama" | "voyage" | "custom") — Embedding provider. Default: "openai"
-- embeddingApiKey (string, optional) — API key for the embedding provider. If absent the plugin falls back to OPENAI_API_KEY env var.
-- topK (number) — Default number of results to return for queries. Default: 10
-- persist (boolean) — Whether to persist newly added documents to disk. Default: true
-- smartSearch (object) — Smart search settings (defaults shown below):
-  - enabled (boolean) — Whether smart search (rerank/query expansion) is enabled. Default: true
-  - rerankerModel (string, optional) — Reranker model name (e.g. "text-embedding-3-small")
-  - rerankTopK (number, optional) — Number of top candidates to rerank
-  - queryExpansion (boolean, optional) — Whether to expand the query
-- distanceMetric ("cosine" | "euclidean" | "dot") — Distance metric for vector comparisons. Default: "cosine"
-- ollamaEndpoint (string, optional) — URL for Ollama service when embeddingProvider === 'ollama'
-- customEmbeddingEndpoint (string, optional) — URL or path for a custom embedding service when embeddingProvider === 'custom'
-- embeddingTimeoutMs (number) — Timeout in milliseconds for remote embedding calls. Default: 10000
-- extras (object) — Catch-all for plugin-specific experimental options (string|number|boolean)
+### Default Sources
+By default, the plugin auto-detects and enables the following sources:
+1. **Session Memory**: Recent interactions from the current session (collection: `memsearch_session`).
+2. **Global Skills**: Shared skills located in `~/.config/opencode/skills`.
+3. **Project Skills**: Project-specific skills in `.opencode/skills`.
+4. **Documentation**: External documentation (collection: `memsearch_docs`, disabled by default).
+
+### Configuration (opencode.json)
+
+The plugin reads memsearch configuration from your project's opencode.json under the `memsearch` key.
+
+```json
+{
+  "memsearch": {
+    "sources": [
+      {
+        "id": "my-docs",
+        "name": "Custom Docs",
+        "pathOrCollection": "my_custom_collection",
+        "enabled": true,
+        "search": {
+          "maxResults": 5,
+          "minScore": 0.1
+        },
+        "injection": {
+          "template": "## {{name}}\n{{content}}\nSource: {{source}}",
+          "maxContentLength": 1000
+        }
+      }
+    ]
+  }
+}
+```
+
+#### MemorySource Options
+- `id` (string): Unique identifier.
+- `name` (string): Display name.
+- `pathOrCollection` (string): Milvus collection name or file path to search.
+- `enabled` (boolean): Whether to include this source in auto-injection.
+- `search`:
+    - `maxResults` (number): Max chunks to retrieve.
+    - `minScore` (number): Minimum relevance threshold.
+    - `filter` (string): Metadata filter expression.
+- `injection`:
+    - `template` (string): Markdown template for injection. Supports `{{name}}`, `{{content}}`, `{{source}}`, `{{score}}`.
+    - `maxContentLength` (number): Max length per chunk.
+
+### General Options
+- `memoryDirectory` (string) — Directory where memory / index files are stored. Default: <workdir>/memsearch_data
+- `embeddingProvider` ("openai" | "local" | "cohere" | "huggingface" | "ollama" | "voyage" | "custom") — Embedding provider. Default: "openai"
+- `embeddingApiKey` (string, optional) — API key for the embedding provider. If absent the plugin falls back to OPENAI_API_KEY env var.
+- `topK` (number) — Default number of results to return for queries. Default: 10
+- `persist` (boolean) — Whether to persist newly added documents to disk. Default: true
+- `smartSearch` (object) — Smart search settings (defaults shown below):
+  - `enabled` (boolean) — Whether smart search (rerank/query expansion) is enabled. Default: true
+  - `rerankerModel` (string, optional) — Reranker model name (e.g. "text-embedding-3-small")
+  - `rerankTopK` (number, optional) — Number of top candidates to rerank
+  - `queryExpansion` (boolean, optional) — Whether to expand the query
+- `distanceMetric` ("cosine" | "euclidean" | "dot") — Distance metric for vector comparisons. Default: "cosine"
+- `ollamaEndpoint` (string, optional) — URL for Ollama service when embeddingProvider === 'ollama'
+- `customEmbeddingEndpoint` (string, optional) — URL or path for a custom embedding service when embeddingProvider === 'custom'
+- `embeddingTimeoutMs` (number) — Timeout in milliseconds for remote embedding calls. Default: 10000
+- `extras` (object) — Catch-all for plugin-specific experimental options (string|number|boolean)
+
+### Adding Custom Documentation
+
+To add your own documentation to memsearch for RAG injection:
+
+1. **Index the files**: Use the `/mem-index` tool to index your documentation into a specific collection.
+   ```bash
+   /mem-index path="./docs/api" recursive=true collection="api_docs"
+   ```
+
+2. **Register the source**: Add the collection to your `opencode.json` under `memsearch.sources`.
+   ```json
+   {
+     "memsearch": {
+       "sources": [
+         {
+           "id": "api-docs",
+           "name": "API Reference",
+           "pathOrCollection": "api_docs",
+           "enabled": true
+         }
+       ]
+     }
+   }
+   ```
+
+3. **Verify**: The next time you ask a question related to the indexed content, memsearch will automatically inject relevant snippets from `api_docs` into the context.
 
 Example opencode.json snippet:
 
-```
+```json
 {
   "memsearch": {
     "memoryDirectory": ".memsearch/data",
     "embeddingProvider": "openai",
     "embeddingApiKey": "sk-...",
     "topK": 8,
-    "smartSearch": { "enabled": true, "rerankerModel": "text-embedding-3-small", "rerankTopK": 10 }
+    "smartSearch": { "enabled": true, "rerankerModel": "text-embedding-3-small", "rerankTopK": 10 },
+    "sources": [
+      { "id": "session-memory", "enabled": false }
+    ]
   }
 }
 ```

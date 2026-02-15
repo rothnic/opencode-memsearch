@@ -1,8 +1,6 @@
 import { tool } from "@opencode-ai/plugin";
 import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
-import type { SearchOptions, SearchResponse, SearchResult } from "../types";
-
-const cli = new MemsearchCLI();
+import type { SearchOptions, SearchResponse, SearchResult, MemsearchToolContext } from "../types";
 
 export const memSearchTool = tool({
   description: "Search the memsearch index and return formatted results (includes chunk_hash)",
@@ -15,7 +13,9 @@ export const memSearchTool = tool({
   },
 
   async execute(rawArgs, _context) {
+    const context = _context as MemsearchToolContext;
     try {
+      const cli = new MemsearchCLI(context.$);
     const { query, topK, minScore, smart, filter } = rawArgs as {
       query: string;
       topK?: number;

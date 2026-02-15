@@ -1,8 +1,6 @@
 import { tool } from "@opencode-ai/plugin";
 import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
-import type { MemsearchConfig } from "../types";
-
-const cli = new MemsearchCLI();
+import type { MemsearchConfig, MemsearchToolContext } from "../types";
 
 export const memConfigTool = tool({
   description: "Get or set memsearch configuration values",
@@ -13,9 +11,11 @@ export const memConfigTool = tool({
   },
 
   async execute(rawArgs, _context) {
+    const context = _context as MemsearchToolContext;
     const { action, key, value } = rawArgs as { action: "get" | "set"; key?: string; value?: string };
 
     try {
+      const cli = new MemsearchCLI(context.$);
       if (action === "get") {
         // If key provided, return specific value; otherwise return full config
         const conf: Partial<MemsearchConfig> = await cli.config("get", key);

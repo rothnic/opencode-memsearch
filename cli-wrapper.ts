@@ -28,11 +28,16 @@ export class MemsearchNotFoundError extends Error {
 
 export class MemsearchCLI {
   private isAvailable: boolean | null = null;
+  private shell: any;
+
+  constructor(shell?: any) {
+    this.shell = shell || $;
+  }
 
   async checkAvailability(): Promise<boolean> {
     if (this.isAvailable !== null) return this.isAvailable;
     try {
-      const result = await $`memsearch --version`.quiet();
+      const result = await this.shell`sh -c "memsearch --version"`.quiet();
       this.isAvailable = result.exitCode === 0;
       return this.isAvailable;
     } catch {
@@ -47,73 +52,76 @@ export class MemsearchCLI {
     }
   }
 
-  async index(path: string, options: { recursive?: boolean } = {}): Promise<void> {
+  async index(path: string, options: { recursive?: boolean; collection?: string } = {}): Promise<void> {
     await this.ensureAvailable();
-    const args: string[] = ["index", path];
+    let cmd = `memsearch index "${path}"`;
     if (options.recursive) {
-      args.push("--recursive");
+      cmd += " --recursive";
     }
-    await $`memsearch ${args}`.throws(true);
+    if (options.collection) {
+      cmd += ` --collection "${options.collection}"`;
+    }
+    await this.shell`sh -c ${cmd}`.throws(true);
   }
 
   async search(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
     await this.ensureAvailable();
-    const args: string[] = ["search", query, "--json"];
+    let cmd = `memsearch search "${query}" --json`;
     
     if (options.topK !== undefined) {
-      args.push("--top-k", options.topK.toString());
+      cmd += ` --top-k ${options.topK}`;
     }
     if (options.minScore !== undefined) {
-      args.push("--min-score", options.minScore.toString());
+      cmd += ` --min-score ${options.minScore}`;
     }
     if (options.filter !== undefined) {
-      args.push("--filter", options.filter);
+      cmd += ` --filter "${options.filter}"`;
     }
     if (options.collection !== undefined) {
-      args.push("--collection", options.collection);
+      cmd += ` --collection "${options.collection}"`;
     }
     if (options.includeEmbeddings) {
-      args.push("--include-embeddings");
+      cmd += " --include-embeddings";
     }
     
     if (options.smart) {
-      args.push("--smart");
+      cmd += " --smart";
       if (typeof options.smart === 'object') {
         if (options.smart.rerankerModel) {
-          args.push("--reranker", options.smart.rerankerModel);
+          cmd += ` --reranker "${options.smart.rerankerModel}"`;
         }
         if (options.smart.queryExpansion) {
-          args.push("--expand-query");
+          cmd += " --expand-query";
         }
       }
     }
 
-    const output = await $`memsearch ${args}`.text();
+    const output = await this.shell`sh -c ${cmd}`.text();
     return JSON.parse(output) as SearchResponse;
   }
 
   async watch(path: string): Promise<void> {
     await this.ensureAvailable();
-    await $`memsearch watch ${path}`.throws(true);
+    await this.shell`sh -c "memsearch watch ${path}"`.throws(true);
   }
 
   async compact(): Promise<string> {
     await this.ensureAvailable();
     // Run memsearch compact and return its stdout as the compaction summary.
     // Use .text() so we capture the summary content produced by memsearch.
-    const output = await $`memsearch compact`.text();
+    const output = await this.shell`sh -c "memsearch compact"`.text();
     return output;
   }
 
   async expand(query: string): Promise<ExpandResult[]> {
     await this.ensureAvailable();
-    const output = await $`memsearch expand ${query} --json`.text();
+    const output = await this.shell`sh -c "memsearch expand ${query} --json"`.text();
     return JSON.parse(output) as ExpandResult[];
   }
 
   async transcript(sessionId: string): Promise<TranscriptEntry[]> {
     await this.ensureAvailable();
-    const output = await $`memsearch transcript ${sessionId} --json`.text();
+    const output = await this.shell`sh -c "memsearch transcript ${sessionId} --json"`.text();
     return JSON.parse(output) as TranscriptEntry[];
   }
 
@@ -122,27 +130,31 @@ export class MemsearchCLI {
   async config(action: "get" | "set", key?: string, value?: string): Promise<Partial<MemsearchConfig> | void> {
     await this.ensureAvailable();
     if (action === "get") {
-      const args: string[] = ["config", "get", "--json"];
-      if (key) args.push(key);
-      const output = await $`memsearch ${args}`.text();
+      let cmd = "memsearch config get --json";
+      if (key) cmd += ` ${key}`;
+      const output = await this.shell`sh -c ${cmd}`.text();
       return JSON.parse(output) as Partial<MemsearchConfig>;
     } else {
       if (!key || value === undefined) {
         throw new Error("Key and value are required for config set");
       }
-      await $`memsearch config set ${key} ${value}`.throws(true);
+      await this.shell`sh -c "memsearch config set ${key} ${value}"`.throws(true);
     }
   }
 
   async stats(): Promise<MemsearchStats> {
     await this.ensureAvailable();
-    const output = await $`memsearch stats --json`.text();
-    return JSON.parse(output) as MemsearchStats;
+    const output = await this.shell`sh -c "memsearch stats --json"`.text();
+    const trimmed = output.trim();
+    if (!trimmed) {
+      return { documentCount: 0, chunkCount: 0, indexSize: 0 };
+    }
+    return JSON.parse(trimmed) as MemsearchStats;
   }
 
   async reset(): Promise<void> {
     await this.ensureAvailable();
-    await $`memsearch reset --force`.throws(true);
+    await this.shell`sh -c "memsearch reset --force"`.throws(true);
   }
 
   async version(): Promise<string> {
@@ -150,7 +162,7 @@ export class MemsearchCLI {
     // We don't call ensureAvailable() because the version command itself
     // is the availability probe and may throw if the binary is missing.
     try {
-      const output = await $`memsearch --version`.text();
+      const output = await this.shell`sh -c "memsearch --version"`.text();
       return output.trim();
     } catch (err) {
       // Normalize to a consistent error when the binary isn't present.

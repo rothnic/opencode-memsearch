@@ -2,17 +2,16 @@ import { MemsearchCLI } from "../cli-wrapper";
 import { loadConfig } from "../config";
 import type { PluginInput } from "@opencode-ai/plugin";
 
-const cli = new MemsearchCLI();
-
 /**
  * Hook to inject relevant memories into the system prompt based on user query.
  */
 export const onSystemTransform = async (input: any, output: any, ctx: PluginInput) => {
   try {
+    const cli = new MemsearchCLI(ctx.$);
     const isAvailable = await cli.checkAvailability();
     if (!isAvailable) return;
 
-    // 1. Get user's latest message from input.messages as per task requirement
+    // 1. Get user's latest message from input.messages
     const messages = input.messages || [];
     const lastUserMessage = messages.filter((m: any) => m.role === "user").pop();
 
@@ -32,70 +31,60 @@ export const onSystemTransform = async (input: any, output: any, ctx: PluginInpu
     if (!query) return;
 
     const config = await loadConfig(ctx.directory);
+    const sources = config.sources || [];
     const projectPath = ctx.directory;
 
-    const results: any[] = [];
+    const injectionBlocks: string[] = [];
 
-    // Tier 1: Search current project collection
-    const projectResults = await cli.search(query, {
-      topK: config.topK,
-      filter: `source starts_with "${projectPath}"`,
-      minScore: 0.01,
-    });
+    for (const source of sources) {
+      if (!source.enabled) continue;
 
-    if (projectResults.results) {
-      results.push(...projectResults.results.map((r) => ({ ...r, tier: "project" })));
-    }
-
-    // Tier 2: Search global memories if project results are few or query is general
-    // Heuristic: if fewer than 3 project results, try global search
-    const shouldSearchGlobal = results.length < 3;
-
-    if (shouldSearchGlobal) {
       try {
-        const globalResults = await cli.search(query, {
-          collection: "memsearch_global",
-          topK: Math.max(3, Math.floor(config.topK / 2)),
-          minScore: 0.01,
+        const searchResults = await cli.search(query, {
+          collection: source.collection || source.pathOrCollection,
+          topK: source.search.maxResults,
+          minScore: source.search.minScore || 0.01,
+          filter: source.search.filter,
         });
-        if (globalResults.results) {
-          results.push(...globalResults.results.map((r) => ({ ...r, tier: "global" })));
+
+        if (searchResults.results && searchResults.results.length > 0) {
+          const formattedResults = searchResults.results
+            .map((r) => {
+              const rawContent = r.content.trim();
+              const content = rawContent.length > source.injection.maxContentLength
+                ? rawContent.slice(0, source.injection.maxContentLength) + "..."
+                : rawContent;
+
+              const sourceUri = r.source?.uri || r.source?.name || "unknown";
+              const relativeSource = sourceUri.startsWith(projectPath)
+                ? sourceUri.slice(projectPath.length).replace(/^\//, "")
+                : sourceUri;
+
+              let template = source.injection.template;
+              
+              // Simple template replacement
+              template = template.replace(/{{content}}/g, content);
+              template = template.replace(/{{name}}/g, r.source?.name || source.name);
+              template = template.replace(/{{source}}/g, relativeSource);
+              template = template.replace(/{{score}}/g, r.score.toFixed(2));
+              
+              return template;
+            })
+            .join("\n---\n");
+
+          if (formattedResults) {
+            injectionBlocks.push(formattedResults);
+          }
         }
       } catch (e) {
-        // Global collection might not exist or search might fail; degrade gracefully
+        // Source might not exist or search might fail; degrade gracefully
+        console.error(`Search failed for source ${source.id}:`, e);
       }
     }
 
-    if (results.length === 0) return;
-
-    // Deduplicate by chunk_hash and sort by score
-    const uniqueResults = Array.from(new Map(results.map((r) => [r.chunk_hash, r])).values())
-      .sort((a, b) => b.score - a.score)
-      .slice(0, config.topK);
-
-    // Format results with source, heading, and content
-    const formatted = uniqueResults
-      .map((r) => {
-        const source = r.source?.uri || r.source?.name || "unknown";
-        const relativeSource = source.startsWith(projectPath)
-          ? source.slice(projectPath.length).replace(/^\//, "")
-          : source;
-
-        const heading = r.metadata?.heading ? `\nHeading: ${r.metadata.heading}` : "";
-        
-        const content = r.content.trim();
-        let preview = content;
-        if (content.length > 200) {
-          const lastSpace = content.lastIndexOf(" ", 200);
-          preview = (lastSpace > 0 ? content.slice(0, lastSpace) : content.slice(0, 200)) + "...";
-        }
-
-        return `Source: ${relativeSource}${heading}\nChunk Hash: ${r.chunk_hash}\nConfidence: ${r.score.toFixed(2)}\nContent: ${preview}`;
-      })
-      .join("\n---\n");
-
-    if (formatted) {
-      output.system.push(`<memsearch-context>\n${formatted}\n</memsearch-context>`);
+    if (injectionBlocks.length > 0) {
+      const combined = injectionBlocks.join("\n\n");
+      output.system.push(`<memsearch-context>\n${combined}\n</memsearch-context>`);
     }
   } catch (err) {
     // Degrade gracefully: don't block the chat if search fails

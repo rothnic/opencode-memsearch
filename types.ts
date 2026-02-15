@@ -4,8 +4,19 @@
  * NOTE: Avoid using `any`. Keep types explicit and narrow where possible.
  */
 
+import type { ToolContext } from "@opencode-ai/plugin";
+
 /** Unique identifier for a search chunk or document */
 export type ChunkHash = string;
+
+/**
+ * Extended ToolContext that includes the shell runner ($).
+ * This is currently missing from the base ToolContext in @opencode-ai/plugin.
+ */
+export interface MemsearchToolContext extends ToolContext {
+  /** Shell runner (Bun.shell compatible) */
+  $: any; // Using any for now to avoid complex shell type imports, but we know it's a shell runner
+}
 
 /** Source descriptor for where the search result originated */
 export interface SearchSource {
@@ -95,8 +106,44 @@ export interface MemsearchConfig {
   customEmbeddingEndpoint?: string;
   /** Optional timeout (ms) for remote embedding calls */
   embeddingTimeoutMs?: number;
+  /** Memory sources for auto-injection and search */
+  sources?: MemorySource[];
+  /** Default source for backward compatibility */
+  defaultSource?: MemorySource;
   /** Additional plugin-specific options */
   extras?: Record<string, string | number | boolean>;
+}
+
+/** Configuration for a specific memory source */
+export interface MemorySource {
+  /** Unique identifier for this source */
+  id: string;
+  /** Display name */
+  name: string;
+  /** Path or collection to search */
+  pathOrCollection: string;
+  /** Collection name in Milvus (if different from path) */
+  collection?: string;
+  /** Whether this source is enabled for auto-injection */
+  enabled: boolean;
+  /** Search configuration for this source */
+  search: {
+    /** Maximum results to return from this source */
+    maxResults: number;
+    /** Minimum score threshold */
+    minScore?: number;
+    /** Custom filter expression */
+    filter?: string;
+  };
+  /** How to format results from this source in injection */
+  injection: {
+    /** Template for formatting results */
+    template: string; // e.g., "## {{name}}\n{{content}}"
+    /** Maximum content length per result */
+    maxContentLength: number;
+    /** Include source attribution */
+    includeSource?: boolean;
+  };
 }
 
 /** Response envelope for a search operation */

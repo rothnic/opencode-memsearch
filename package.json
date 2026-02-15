@@ -1,11 +1,26 @@
 {
-  "name": "@opencode-plugin/memsearch",
+  "name": "opencode-memsearch",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "main": "index.ts",
+  "exports": "./index.ts",
+  "description": "OpenCode plugin for memsearch semantic memory",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rothnic/opencode-memsearch.git"
+  },
+  "keywords": ["opencode", "opencode-plugin", "memsearch", "memory", "semantic-search"],
+  "author": "Nathaniel Roth",
+  "license": "MIT",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "prepublishOnly": "npm run typecheck",
+    "test:e2e": "bun test ../../../tests/e2e"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=0.15.0"
   },
   "dependencies": {
     "@opencode-ai/plugin": "*"
@@ -14,5 +29,6 @@
     "@types/node": "^20.0.0",
     "bun-types": "^1.3.9",
     "typescript": "^5.2.2"
-  }
+  },
+  "files": ["*.ts", "hooks/", "tools/", "README.md", "LICENSE"]
 }

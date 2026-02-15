@@ -1,10 +1,8 @@
 import { tool } from "@opencode-ai/plugin";
-import type { ToolContext } from "@opencode-ai/plugin";
 import path from "path";
 import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
 import type { TranscriptEntry } from "../cli-wrapper";
-
-const cli = new MemsearchCLI();
+import type { MemsearchToolContext } from "../types";
 
 interface Turn {
   type: "message" | "tool_execution" | "search";
@@ -24,11 +22,13 @@ export const memTranscriptTool = tool({
     index: tool.schema.number().optional().describe("Optional index of a specific turn"),
   },
 
-  async execute(args, ctx: ToolContext) {
+  async execute(args, _context) {
+    const context = _context as MemsearchToolContext;
     try {
       const { sessionId, index } = args as { sessionId: string; index?: number };
+      const cli = new MemsearchCLI(context.$);
 
-      const historyDir = path.join(ctx.directory, ".memsearch", "history");
+      const historyDir = path.join(context.directory, ".memsearch", "history");
       const historyFile = path.join(historyDir, `${sessionId}.jsonl`);
       const file = Bun.file(historyFile);
 

@@ -1,8 +1,6 @@
 import { tool } from "@opencode-ai/plugin";
 import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
-import type { ExpandResult } from "../types";
-
-const cli = new MemsearchCLI();
+import type { ExpandResult, MemsearchToolContext } from "../types";
 
 export const memExpandTool = tool({
   description: "Expand a chunk_hash into full context: source, heading, and full content",
@@ -11,8 +9,10 @@ export const memExpandTool = tool({
   },
 
   async execute(args, _context) {
+    const context = _context as MemsearchToolContext;
     try {
       const { chunk_hash } = args as { chunk_hash: string };
+      const cli = new MemsearchCLI(context.$);
 
       // Use the CLI wrapper which returns typed ExpandResult[]
       const results: ExpandResult[] = await cli.expand(chunk_hash);

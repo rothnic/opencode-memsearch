@@ -1,13 +1,14 @@
 import { tool } from "@opencode-ai/plugin";
 import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
-
-const cli = new MemsearchCLI();
+import type { MemsearchToolContext } from "../types";
 
 export const memStatsTool = tool({
   description: "Return memsearch index statistics (documentCount, chunkCount, indexSize, etc.)",
   args: {},
   async execute(_args, _context) {
+    const context = _context as MemsearchToolContext;
     try {
+      const cli = new MemsearchCLI(context.$);
       const stats = await cli.stats();
 
       const out = {

@@ -1,7 +1,6 @@
 import { tool } from "@opencode-ai/plugin";
 import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
-
-const cli = new MemsearchCLI();
+import type { MemsearchToolContext } from "../types";
 
 export const memResetTool = tool({
   description: "Reset (drop) the memsearch index. Requires explicit confirmation",
@@ -10,6 +9,7 @@ export const memResetTool = tool({
   },
 
   async execute(rawArgs, _context) {
+    const context = _context as MemsearchToolContext;
     const { confirm } = rawArgs as { confirm: boolean };
 
     if (!confirm) {
@@ -21,6 +21,7 @@ export const memResetTool = tool({
     }
 
     try {
+      const cli = new MemsearchCLI(context.$);
       await cli.reset();
 
       const out = {
