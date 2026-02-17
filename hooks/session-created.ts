@@ -2,6 +2,7 @@ import { MemsearchCLI } from "../cli-wrapper";
 import { loadConfig } from "../config";
 import { state } from "../state";
 import type { PluginInput } from "@opencode-ai/plugin";
+import { indexSessions } from "../lib/session-indexer";
 
 const cli = new MemsearchCLI();
 
@@ -34,6 +35,17 @@ export const onSessionCreated = async (event: any, ctx: PluginInput) => {
         await cli.index(ctx.directory, { recursive: true });
       } catch (err) {
         console.error("memsearch auto-index failed:", err);
+      }
+    })();
+    
+    // Fire-and-forget session indexing in background. Do not block the hook.
+    (async () => {
+      try {
+        // project id required by indexSessions; pass from ctx.project.id
+        await indexSessions(ctx.directory, ctx.directory, { projectId: ctx.project?.id });
+      } catch (err) {
+        // Log errors but do not throw to avoid blocking hook execution
+        console.error("session indexing failed:", err);
       }
     })();
     
