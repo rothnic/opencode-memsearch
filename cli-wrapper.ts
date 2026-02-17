@@ -52,12 +52,9 @@ export class MemsearchCLI {
     }
   }
 
-  async index(path: string, options: { recursive?: boolean; collection?: string } = {}): Promise<void> {
+  async index(path: string, options: { collection?: string } = {}): Promise<void> {
     await this.ensureAvailable();
     let cmd = `memsearch index "${path}"`;
-    if (options.recursive) {
-      cmd += " --recursive";
-    }
     if (options.collection) {
       cmd += ` --collection "${options.collection}"`;
     }
@@ -66,7 +63,7 @@ export class MemsearchCLI {
 
   async search(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
     await this.ensureAvailable();
-    let cmd = `memsearch search "${query}" --json`;
+    let cmd = `memsearch search "${query}" --json-output`;
     
     if (options.topK !== undefined) {
       cmd += ` --top-k ${options.topK}`;
@@ -115,13 +112,13 @@ export class MemsearchCLI {
 
   async expand(query: string): Promise<ExpandResult[]> {
     await this.ensureAvailable();
-    const output = await this.shell`sh -c "memsearch expand ${query} --json"`.text();
+    const output = await this.shell`sh -c "memsearch expand ${query} --json-output"`.text();
     return JSON.parse(output) as ExpandResult[];
   }
 
   async transcript(sessionId: string): Promise<TranscriptEntry[]> {
     await this.ensureAvailable();
-    const output = await this.shell`sh -c "memsearch transcript ${sessionId} --json"`.text();
+    const output = await this.shell`sh -c "memsearch transcript ${sessionId} --json-output"`.text();
     return JSON.parse(output) as TranscriptEntry[];
   }
 
@@ -144,12 +141,27 @@ export class MemsearchCLI {
 
   async stats(): Promise<MemsearchStats> {
     await this.ensureAvailable();
-    const output = await this.shell`sh -c "memsearch stats --json"`.text();
+    // memsearch stats doesn't support JSON output in 0.1.8. Keep calling
+    // the plain text output and attempt to parse if possible. If parsing
+    // fails, return zeroed stats to avoid throwing.
+    const output = await this.shell`sh -c "memsearch stats"`.text();
     const trimmed = output.trim();
     if (!trimmed) {
       return { documentCount: 0, chunkCount: 0, indexSize: 0 };
     }
-    return JSON.parse(trimmed) as MemsearchStats;
+    try {
+      return JSON.parse(trimmed) as MemsearchStats;
+    } catch {
+      // Fallback: try to extract numbers from plain text like:
+      // "Documents: 10\nChunks: 123\nIndex size: 456 bytes"
+      const docMatch = trimmed.match(/Document[s]?:\s*(\d+)/i);
+      const chunkMatch = trimmed.match(/Chunk[s]?:\s*(\d+)/i);
+      const sizeMatch = trimmed.match(/Index\s*size:\s*([0-9,]+)\s*bytes/i);
+      const documentCount = docMatch ? Number(docMatch[1]) : 0;
+      const chunkCount = chunkMatch ? Number(chunkMatch[1]) : 0;
+      const indexSize = sizeMatch ? Number(sizeMatch[1].replace(/,/g, "")) : 0;
+      return { documentCount, chunkCount, indexSize };
+    }
   }
 
   async reset(): Promise<void> {

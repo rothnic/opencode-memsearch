@@ -222,7 +222,8 @@ export async function indexSessions(
     try {
       const { MemsearchCLI } = await import("../cli-wrapper");
       const cli = new MemsearchCLI($);
-      await cli.index(outputDir, { recursive: true, collection: "sessions" });
+      // memsearch index doesn't support --recursive in v0.1.8; call without it.
+      await cli.index(outputDir, { collection: "sessions" });
     } catch (e) {
       console.error(`memsearch: session indexing failed to trigger CLI: ${e}`);
     }
