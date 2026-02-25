@@ -1,0 +1,23 @@
+# config for 'convention' memory type
+# Use for recorded conventions, style choices, patterns, architecture notes
+
+name: convention
+description: |
+  Stores team conventions, coding style agreements, architecture decisions that are not
+  immediate one-off decisions but ongoing conventions the team follows.
+collection: convention
+extractionPrompt: |
+  You are an assistant that identifies team conventions and style guidance from text.
+  Extract items that represent an agreed-upon convention or recommended pattern. For each
+  convention, provide: a short name, a one-paragraph description, rationale (if present),
+  examples or references (if present), and typical scope (file-level, repo-level, project-level).
+  Output as a YAML list where each item has: name, description, rationale, examples, scope, tags.
+tags:
+  - convention
+  - pattern
+  - style
+  # Technology/framework tag suggestions
+  - typescript
+  - react
+  - node
+enabled: true

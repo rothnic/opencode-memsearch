@@ -1,0 +1,23 @@
+# config for 'context' memory type
+# Use for background facts, project-specific terminology, constraints
+
+name: context
+description: |
+  Captures background context: project facts, glossary terms, constraints, and persistent
+  details that help an assistant answer questions about the project in future sessions.
+collection: context
+extractionPrompt: |
+  You are an assistant that extracts persistent context items from conversational text.
+  Find factual statements, glossary entries, project-specific abbreviations, constraints,
+  and environment details. For each item, provide: key (a short identifier), value (one or
+  two sentences), source (where it was mentioned), and tags. Output as a YAML list where each
+  item has: key, value, source, tags.
+tags:
+  - context
+  - glossary
+  - project-fact
+  # Technology/framework tag suggestions
+  - docker
+  - ci
+  - aws
+enabled: true

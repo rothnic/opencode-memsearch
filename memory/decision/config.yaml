@@ -1,0 +1,26 @@
+# config for 'decision' memory type
+# name: human-friendly unique name for the memory type
+# collection: storage collection name (must start with a letter, 3-64 chars)
+# extractionPrompt: prompt used to extract structured memory from raw session text
+
+name: decision
+description: |
+  Captures explicit decisions, action items, and outcomes reached during a session.
+  Use this type for things a human would call a decision or commitment.
+collection: decision
+extractionPrompt: |
+  You are an assistant that extracts discrete decisions from a conversation transcript.
+  For each decision found, produce a short title (5-12 words), the decision details (one or two
+  concise paragraphs), the decision maker(s) if present, any explicit deadline or schedule,
+  and related context tags. Only emit decisions that represent explicit commitments or
+  resolved choices, not open questions or discussion notes.
+  Output as a YAML list where each item has: title, details, owners, deadline, tags.
+tags:
+  - decision
+  - action-item
+  - meeting
+  # Technology/framework tag suggestions - replace or extend per project
+  - backend
+  - frontend
+  - infra
+enabled: true
