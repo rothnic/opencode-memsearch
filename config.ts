@@ -3,6 +3,19 @@ import path from "path";
 import { homedir } from "os";
 import { z } from "zod";
 import type { MemsearchConfig, SmartSearchConfig, MemorySource } from "./types";
+import { loadYamlConfig, mergeWithLegacyConfig, hasYamlConfig } from "./lib/config-yaml";
+import { loadMemoryTypes } from "./lib/memory-type-config-loader";
+
+/**
+ * Migration warning details for legacy config users
+ */
+export interface MigrationWarning {
+  type: "migrate_to_yaml";
+  message: string;
+  instruction: string;
+  legacyConfigPresent: boolean;
+  yamlConfigPresent: boolean;
+}
 
 const DefaultSmartSearch: SmartSearchConfig = {
   enabled: true,
@@ -118,10 +131,85 @@ function getDefaultSources(workdir: string): MemorySource[] {
   ];
 }
 
-/** Load opencode.json from project root if present and merge with defaults */
+/** Load config from .memsearch.yaml first, falling back to opencode.json, then scan memory types */
 export async function loadConfig(workdir: string): Promise<MemsearchConfig> {
+  const yamlConfig = loadYamlConfig(workdir);
+  const legacyConfig = await loadLegacyConfig(workdir);
+
+  const merged = mergeWithLegacyConfig(yamlConfig, legacyConfig) as Record<string, unknown>;
+
+  const scanned = loadMemoryTypes(workdir);
+  const yamlMemoryTypes = yamlConfig?.memoryTypes || [];
+
+  const scannedMap = new Map<string, unknown>();
+  for (const mt of scanned.memoryTypes) {
+    scannedMap.set(mt.name, mt);
+  }
+  for (const mt of yamlMemoryTypes) {
+    if (!scannedMap.has(mt.name)) {
+      scannedMap.set(mt.name, mt);
+    }
+  }
+
+  merged.memoryTypes = Array.from(scannedMap.values());
+
+  // Build extras object - start with existing extras from scanned errors
+  const extras: Record<string, unknown> = { ...(merged.extras as Record<string, unknown>) };
+
+  if (scanned.validationErrors.length > 0) {
+    extras.memoryTypeValidationErrors = scanned.validationErrors;
+  }
+
+  // Check for legacy config migration warning
+  const legacyConfigPath = path.join(workdir, "opencode.json");
+  const hasLegacy = existsSync(legacyConfigPath) && legacyConfigHasMemsearch(legacyConfigPath);
+  const hasYaml = hasYamlConfig(workdir);
+
+  if (hasLegacy && !hasYaml) {
+    // Migration warning - legacy config present but no .memsearch.yaml
+    const migrationWarning: MigrationWarning = {
+      type: "migrate_to_yaml",
+      message: "Legacy memsearch configuration detected in opencode.json",
+      instruction: "Run: cp .memsearch.yaml.example .memsearch.yaml (or manually create .memsearch.yaml based on your opencode.json memsearch section)",
+      legacyConfigPresent: true,
+      yamlConfigPresent: false,
+    };
+    extras.migrationWarning = migrationWarning;
+  } else if (hasLegacy && hasYaml) {
+    // Both present - this is OK, but note it in extras for visibility
+    const migrationInfo = {
+      type: "migrate_to_yaml",
+      message: "Both opencode.json and .memsearch.yaml present - YAML takes precedence",
+      instruction: "Once migrated, you can remove the memsearch section from opencode.json",
+      legacyConfigPresent: true,
+      yamlConfigPresent: true,
+    };
+    extras.migrationWarning = migrationInfo;
+  }
+
+  merged.extras = extras;
+
+  return merged as unknown as MemsearchConfig;
+}
+
+/**
+ * Check if opencode.json has memsearch configuration section.
+ */
+function legacyConfigHasMemsearch(configPath: string): boolean {
+  if (!existsSync(configPath)) {
+    return false;
+  }
+  try {
+    const content = readFileSync(configPath, "utf8");
+    const raw = JSON.parse(content);
+    return !!(raw && typeof raw === "object" && raw.memsearch);
+  } catch {
+    return false;
+  }
+}
+
+async function loadLegacyConfig(workdir: string): Promise<MemsearchConfig> {
   const defaultSources = getDefaultSources(workdir);
-  // defaults
   const defaults: MemsearchConfig = {
     memoryDirectory: path.resolve(workdir, "memsearch_data"),
     embeddingProvider: "openai",
@@ -149,7 +237,6 @@ export async function loadConfig(workdir: string): Promise<MemsearchConfig> {
     }
   }
 
-  // Environment fallback for API key
   if (!userConfig.embeddingApiKey && process.env.OPENAI_API_KEY) {
     userConfig.embeddingApiKey = process.env.OPENAI_API_KEY;
   }
@@ -163,8 +250,6 @@ export async function loadConfig(workdir: string): Promise<MemsearchConfig> {
   };
 
   const parsed = ConfigSchema.parse(merged);
-
-  // Cast to MemsearchConfig (types align with schema)
   return parsed as unknown as MemsearchConfig;
 }
 
