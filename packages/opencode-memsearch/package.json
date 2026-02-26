@@ -23,18 +23,14 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "prepublishOnly": "npm run typecheck",
-    "test": "bun test",
-    "test:e2e": "bun test tests/e2e"
-  },
-  "publishConfig": {
-    "access": "public"
+    "test:e2e": "bun test ../../../tests/e2e"
   },
   "peerDependencies": {
     "@opencode-ai/plugin": ">=0.15.0"
   },
   "dependencies": {
     "@opencode-ai/plugin": "*",
-    "zod": "^3.0.0"
+    "bunqueue": "^2.5.5"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -45,7 +41,6 @@
     "*.ts",
     "hooks/",
     "tools/",
-    "scripts/",
     "README.md",
     "LICENSE"
   ]
