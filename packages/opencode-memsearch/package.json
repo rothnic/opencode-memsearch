@@ -5,6 +5,10 @@
   "type": "module",
   "main": "index.ts",
   "exports": "./index.ts",
+  "bin": {
+    "opencode-memsearch": "./cli.ts",
+    "om": "./cli.ts"
+  },
   "description": "OpenCode plugin for memsearch semantic memory",
   "repository": {
     "type": "git",
@@ -19,9 +23,6 @@
   ],
   "author": "Nathaniel Roth",
   "license": "MIT",
-  "bin": {
-    "memsearch-queue-status": "./scripts/queue-status.ts"
-  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
