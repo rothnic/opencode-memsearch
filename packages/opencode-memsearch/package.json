@@ -19,11 +19,15 @@
   ],
   "author": "Nathaniel Roth",
   "license": "MIT",
+  "bin": {
+    "memsearch-queue-status": "./scripts/queue-status.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "prepublishOnly": "npm run typecheck",
-    "test:e2e": "bun test ../../../tests/e2e"
+    "test:e2e": "bun test ../../../tests/e2e",
+    "queue-status": "bun ./scripts/queue-status.ts"
   },
   "peerDependencies": {
     "@opencode-ai/plugin": ">=0.15.0"
@@ -41,6 +45,7 @@
     "*.ts",
     "hooks/",
     "tools/",
+    "scripts/",
     "README.md",
     "LICENSE"
   ]
