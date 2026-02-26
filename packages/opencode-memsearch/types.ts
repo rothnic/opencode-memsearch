@@ -84,6 +84,18 @@ export interface SearchOptions {
 	collection?: string;
 }
 
+/** Configuration for the job queue (bunqueue) */
+export interface QueueConfig {
+	/** Number of concurrent jobs to process (default: 1) */
+	concurrency?: number;
+	/** Directory for queue database (default: ~/.config/opencode/memsearch/queue) */
+	dataPath?: string;
+	/** Deduplication window in milliseconds (default: 60000) */
+	dedupTtl?: number;
+	/** Delay before retrying deferred jobs in milliseconds (default: 10000) */
+	deferDelay?: number;
+}
+
 /** Configuration schema for the memsearch plugin */
 export interface MemsearchConfig {
 	/** Directory where memory / index files are stored */
@@ -110,6 +122,9 @@ export interface MemsearchConfig {
 	sources?: MemorySource[];
 	/** Default source for backward compatibility */
 	defaultSource?: MemorySource;
+	/** Job queue configuration for session processing */
+	queue?: QueueConfig;
+
 	/** Additional plugin-specific options */
 	extras?: Record<string, string | number | boolean>;
 }

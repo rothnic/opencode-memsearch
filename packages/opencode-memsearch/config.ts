@@ -31,6 +31,13 @@ const MemorySourceSchema = z.object({
 	}),
 });
 
+const QueueConfigSchema = z.object({
+	concurrency: z.number().int().positive().optional().default(1),
+	dataPath: z.string().optional(),
+	dedupTtl: z.number().int().positive().optional().default(60000),
+	deferDelay: z.number().int().positive().optional().default(10000),
+});
+
 const ConfigSchema = z.object({
 	memoryDirectory: z.string().nonempty(),
 	embeddingProvider: z.enum([
