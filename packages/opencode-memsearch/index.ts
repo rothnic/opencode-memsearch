@@ -9,6 +9,8 @@ import memExpandTool from "./tools/expand";
 import memIndexTool from "./tools/index";
 import memSearchTool from "./tools/search";
 import memWatchTool from "./tools/watch";
+// Import to initialize queue and worker
+import "./lib/memory-worker";
 
 const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 	return {
@@ -25,6 +27,8 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 			"mem-config": (await import("./tools/config")).default,
 			"mem-transcript": (await import("./tools/transcript")).default,
 			"mem-doctor": (await import("./tools/doctor")).default,
+		"mem-history": (await import("./tools/history")).default,
+		"mem-backfill": (await import("./tools/backfill")).default,
 		},
 		hook: {
 			"session.created": onSessionCreated,
@@ -33,10 +37,6 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 			"session.idle": onSessionIdle,
 			"experimental.session.compacting": onSessionCompacting,
 			"experimental.chat.system.transform": onSystemTransform,
-			"message.updated": (await import("./hooks/message-updated"))
-				.onMessageUpdated,
-			"message.part.updated": (await import("./hooks/message-updated"))
-				.onMessagePartUpdated,
 			"tool.execute.after": onToolExecuted,
 		},
 	};
