@@ -276,3 +276,14 @@ If you find inconsistencies or missing behavior, inspect the plugin source under
 ---
 
 If you need a more detailed example or want the plugin to perform additional automatic captures, describe a single change you'd like and I will implement it.
+
+### Environment Variables
+
+The plugin also respects the following environment variables for operational configuration:
+
+- `MEMSEARCH_CONCURRENCY` (default: 1) - Number of concurrent jobs to process in the queue
+- `MEMSEARCH_QUEUE_PATH` (default: ~/.config/opencode/memsearch/queue) - Directory for queue database  
+- `MEMSEARCH_DEDUP_TTL` (default: 60000) - Deduplication window in milliseconds (60 seconds)
+- `MEMSEARCH_DEFER_DELAY` (default: 10000) - Delay before retrying deferred jobs in milliseconds (10 seconds)
+
+These control the internal job queue behavior for session processing and backfill operations.
