@@ -4,6 +4,8 @@ import { onSessionCreated } from "./hooks/session-created";
 import { onSessionIdle } from "./hooks/session-idle";
 import { onSystemTransform } from "./hooks/system-transform";
 import { onToolExecuted } from "./hooks/tool-executed";
+import { signalSessionActivity } from "./lib/memory-queue";
+import { shouldSkipSession, type SessionInfo } from "./state";
 import memCompactTool from "./tools/compact";
 import memExpandTool from "./tools/expand";
 import memIndexTool from "./tools/index";
@@ -40,6 +42,55 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 			"message.part.updated": (await import("./hooks/message-updated"))
 				.onMessagePartUpdated,
 			"tool.execute.after": onToolExecuted,
+		},
+		// Also handle events like Discord plugin does
+		event: async ({ event }) => {
+			const evType = (event as { type?: string }).type;
+			const sessionID = (event as { sessionID?: string })?.sessionID || 
+			                  (event as { data?: { sessionID?: string } })?.data?.sessionID;
+			
+			console.log(`[memsearch] Event received: ${evType}, sessionID: ${sessionID}`);
+			
+			if (evType === "session.start" && sessionID) {
+				console.log(`[memsearch] Handling session.start for ${sessionID}`);
+				
+				// Check if we should skip this session
+				if (shouldSkipSession(sessionID)) {
+					console.log(`[memsearch] Skipping session: ${sessionID}`);
+					return;
+				}
+				
+				// Queue the session for processing
+				try {
+					await signalSessionActivity(
+						'session-created',
+						sessionID,
+						project?.id || directory,
+						directory,
+						{ event: 'session.start' }
+					);
+					console.log(`[memsearch] Queued session.start for ${sessionID}`);
+				} catch (err) {
+					console.error(`[memsearch] Failed to queue session:`, err);
+				}
+			}
+			
+			if (evType === "session.idle" && sessionID) {
+				console.log(`[memsearch] Handling session.idle for ${sessionID}`);
+				
+				try {
+					await signalSessionActivity(
+						'session-idle',
+						sessionID,
+						project?.id || directory,
+						directory,
+						{ event: 'session.idle' }
+					);
+					console.log(`[memsearch] Queued session.idle for ${sessionID}`);
+				} catch (err) {
+					console.error(`[memsearch] Failed to queue idle:`, err);
+				}
+			}
 		},
 	};
 };
