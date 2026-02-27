@@ -4,8 +4,8 @@ import { onSessionCreated } from "./hooks/session-created";
 import { onSessionIdle } from "./hooks/session-idle";
 import { onSystemTransform } from "./hooks/system-transform";
 import { onToolExecuted } from "./hooks/tool-executed";
-import { signalSessionActivity, setupRecurringJobs } from "./lib/memory-queue";
-import { backfillAllSessions } from "./lib/backfill";
+import { startBackfillInBackground } from "./lib/backfill";
+import { setupRecurringJobs, signalSessionActivity } from "./lib/memory-queue";
 import { shouldSkipSession } from "./state";
 import memCompactTool from "./tools/compact";
 import memExpandTool from "./tools/expand";
@@ -13,14 +13,15 @@ import memIndexTool from "./tools/index";
 import memSearchTool from "./tools/search";
 import memWatchTool from "./tools/watch";
 import "./lib/memory-worker";
-import { basename } from "path";
 import { $ } from "bun";
+import { basename } from "path";
 
 async function getProjectDisplayName(directory: string): Promise<string> {
 	const folderName = basename(directory);
-	
+
 	try {
-		const result = await $`cd ${directory} && git branch --show-current 2>/dev/null`.quiet();
+		const result =
+			await $`cd ${directory} && git branch --show-current 2>/dev/null`.quiet();
 		const branch = result.text().trim();
 		if (branch) {
 			return `${folderName}:${branch}`;
@@ -28,7 +29,7 @@ async function getProjectDisplayName(directory: string): Promise<string> {
 	} catch {
 		// Not a git repo or no branch
 	}
-	
+
 	return folderName;
 }
 
@@ -38,19 +39,16 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 	// One-time initialization on first plugin load
 	if (!initialized) {
 		initialized = true;
-		
-		// Queue all existing sessions on startup
-		console.log('[memsearch] Initializing - queuing existing sessions...');
-		backfillAllSessions().catch(err => {
-			console.error('[memsearch] Failed to backfill sessions:', err);
-		});
-		
+
+		// Queue recent sessions in background (non-blocking)
+		startBackfillInBackground();
+
 		// Set up recurring 6-hour backfill job
-		setupRecurringJobs().catch(err => {
-			console.error('[memsearch] Failed to setup recurring jobs:', err);
+		setupRecurringJobs().catch((err) => {
+			console.error("[memsearch] Failed to setup recurring jobs:", err);
 		});
 	}
-	
+
 	const projectName = await getProjectDisplayName(directory || process.cwd());
 	return {
 		tool: {
@@ -81,47 +79,50 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 		},
 		event: async ({ event }) => {
 			const evType = (event as { type?: string }).type;
-			const ev = event as { 
-				sessionID?: string; 
+			const ev = event as {
+				sessionID?: string;
 				data?: { sessionID?: string };
 				properties?: { info?: { id?: string } };
 			};
-			const sessionID = ev.sessionID || ev.data?.sessionID || ev.properties?.info?.id;
-			
-			console.log(`[memsearch] Event received: ${evType}, sessionID: ${sessionID}`);
-			
+			const sessionID =
+				ev.sessionID || ev.data?.sessionID || ev.properties?.info?.id;
+
+			console.log(
+				`[memsearch] Event received: ${evType}, sessionID: ${sessionID}`,
+			);
+
 			if (evType === "session.created" && sessionID) {
 				console.log(`[memsearch] Handling session.created for ${sessionID}`);
-				
+
 				if (shouldSkipSession(sessionID)) {
 					console.log(`[memsearch] Skipping session: ${sessionID}`);
 					return;
 				}
-				
+
 				try {
 					await signalSessionActivity(
-						'session-created',
+						"session-created",
 						sessionID,
 						projectName,
 						directory,
-						{ event: 'session.created' }
+						{ event: "session.created" },
 					);
 					console.log(`[memsearch] Queued session.created for ${sessionID}`);
 				} catch (err) {
 					console.error(`[memsearch] Failed to queue session:`, err);
 				}
 			}
-			
+
 			if (evType === "session.idle" && sessionID) {
 				console.log(`[memsearch] Handling session.idle for ${sessionID}`);
-				
+
 				try {
 					await signalSessionActivity(
-						'session-idle',
+						"session-idle",
 						sessionID,
 						projectName,
 						directory,
-						{ event: 'session.idle' }
+						{ event: "session.idle" },
 					);
 					console.log(`[memsearch] Queued session.idle for ${sessionID}`);
 				} catch (err) {

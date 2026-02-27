@@ -27,8 +27,8 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 			"mem-config": (await import("./tools/config")).default,
 			"mem-transcript": (await import("./tools/transcript")).default,
 			"mem-doctor": (await import("./tools/doctor")).default,
-		"mem-history": (await import("./tools/history")).default,
-		"mem-backfill": (await import("./tools/backfill")).default,
+			"mem-history": (await import("./tools/history")).default,
+			"mem-backfill": (await import("./tools/backfill")).default,
 		},
 		hook: {
 			"session.created": onSessionCreated,

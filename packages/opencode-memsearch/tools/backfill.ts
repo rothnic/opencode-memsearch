@@ -3,7 +3,10 @@ import { $ } from "bun";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import { MemsearchCLI } from "../cli-wrapper";
-import { appendEntryToSessionMarkdown, initSessionMarkdown } from "../hooks/session-to-markdown";
+import {
+	appendEntryToSessionMarkdown,
+	initSessionMarkdown,
+} from "../hooks/session-to-markdown";
 import { isThrottled, markSessionProcessed } from "../state";
 
 const cli = new MemsearchCLI();
@@ -53,7 +56,10 @@ function deleteQueue(workdir: string) {
 	}
 }
 
-async function fetchAndPopulateSession(sessionId: string, ctx: any): Promise<boolean> {
+async function fetchAndPopulateSession(
+	sessionId: string,
+	ctx: any,
+): Promise<boolean> {
 	try {
 		const result = await ctx.client.session.messages({
 			path: { id: sessionId },
@@ -106,13 +112,13 @@ async function processBatch(
 
 		console.log(`[memsearch-backfill] Processing session: ${sessionId}`);
 		const success = await fetchAndPopulateSession(sessionId, ctx);
-		
+
 		if (success) {
 			markSessionProcessed(sessionId);
 			processed++;
 		}
 
-		queue.pending = queue.pending.filter(id => id !== sessionId);
+		queue.pending = queue.pending.filter((id) => id !== sessionId);
 		queue.processedCount++;
 	}
 
@@ -157,7 +163,9 @@ export const memBackfillTool = tool({
 		action: tool.schema
 			.enum(["start", "status", "pause", "resume", "cancel"])
 			.optional()
-			.describe("Action to perform: start, check status, pause, resume, or cancel backfill"),
+			.describe(
+				"Action to perform: start, check status, pause, resume, or cancel backfill",
+			),
 		batchSize: tool.schema
 			.number()
 			.optional()
@@ -165,7 +173,9 @@ export const memBackfillTool = tool({
 		continuous: tool.schema
 			.boolean()
 			.optional()
-			.describe("Use continuous mode (processes all sessions across session idle events)"),
+			.describe(
+				"Use continuous mode (processes all sessions across session idle events)",
+			),
 	},
 
 	async execute(rawArgs, _context) {
@@ -194,13 +204,20 @@ export const memBackfillTool = tool({
 
 				if (queue) {
 					const status = queue.processing ? "🔄 Processing" : "⏸️ Paused";
-					const progress = ((queue.processedCount / queue.totalCount) * 100).toFixed(1);
-					return `${status}: ${queue.processedCount}/${queue.totalCount} sessions (${progress}%)\n` +
-						   `Pending: ${queue.pending.length} sessions\n` +
-						   `Last processed: ${new Date(queue.lastProcessedAt).toLocaleString()}`;
+					const progress = (
+						(queue.processedCount / queue.totalCount) *
+						100
+					).toFixed(1);
+					return (
+						`${status}: ${queue.processedCount}/${queue.totalCount} sessions (${progress}%)\n` +
+						`Pending: ${queue.pending.length} sessions\n` +
+						`Last processed: ${new Date(queue.lastProcessedAt).toLocaleString()}`
+					);
 				} else {
-					return `📋 Found ${unprocessed.length} unprocessed sessions\n` +
-						   `Run 'opencode tool mem-backfill --action start' to begin processing`;
+					return (
+						`📋 Found ${unprocessed.length} unprocessed sessions\n` +
+						`Run 'opencode tool mem-backfill --action start' to begin processing`
+					);
 				}
 			}
 
@@ -227,17 +244,21 @@ export const memBackfillTool = tool({
 				saveQueue(workdir, queue);
 
 				if (args.continuous) {
-					return `🚀 Starting continuous backfill of ${unprocessed.length} sessions...\n` +
-						   `Processing ${queue.batchSize} sessions per batch.\n` +
-						   `The next batch will be processed when this session goes idle.`;
+					return (
+						`🚀 Starting continuous backfill of ${unprocessed.length} sessions...\n` +
+						`Processing ${queue.batchSize} sessions per batch.\n` +
+						`The next batch will be processed when this session goes idle.`
+					);
 				} else {
 					const result = await processBatch(queue, ctx, workdir);
-					
+
 					if (result.hasMore) {
-						return `✅ Processed ${result.processed} sessions.\n` +
-							   `${queue.pending.length} sessions remaining.\n` +
-							   `Run 'opencode tool mem-backfill' again to continue, ` +
-							   `or use --continuous to auto-process across session idle events.`;
+						return (
+							`✅ Processed ${result.processed} sessions.\n` +
+							`${queue.pending.length} sessions remaining.\n` +
+							`Run 'opencode tool mem-backfill' again to continue, ` +
+							`or use --continuous to auto-process across session idle events.`
+						);
 					} else {
 						deleteQueue(workdir);
 						return `✅ Backfill complete! Processed ${queue.processedCount} sessions.`;
@@ -268,7 +289,7 @@ export const memBackfillTool = tool({
 				saveQueue(workdir, queue);
 
 				const result = await processBatch(queue, ctx, workdir);
-				
+
 				if (!result.hasMore) {
 					deleteQueue(workdir);
 					return `✅ Backfill complete! Processed ${queue.processedCount} sessions.`;

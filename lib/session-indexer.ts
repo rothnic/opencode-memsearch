@@ -185,25 +185,35 @@ export function loadMessagesFromDB(
 	return rows.map((row) => {
 		try {
 			const data = JSON.parse(row.data);
-			
+
 			// Extract content from various possible locations
 			let content = data.content || data.summary?.body;
-			
+
 			// If no direct content, try to extract from diffs
-			if (!content && data.summary?.diffs && Array.isArray(data.summary.diffs)) {
+			if (
+				!content &&
+				data.summary?.diffs &&
+				Array.isArray(data.summary.diffs)
+			) {
 				const diffs = data.summary.diffs;
 				if (diffs.length > 0) {
 					// Use the after content from the first diff, or combine all
-				content = diffs.map((d: any) => d.after || d.before || '').join('\n\n');
-				content = diffs.map((d: any) => d.after || d.before || '').join('\n\n');
-				content = diffs.map((d: any) => d.after || d.before || '').join('\n\n');
+					content = diffs
+						.map((d: any) => d.after || d.before || "")
+						.join("\n\n");
+					content = diffs
+						.map((d: any) => d.after || d.before || "")
+						.join("\n\n");
+					content = diffs
+						.map((d: any) => d.after || d.before || "")
+						.join("\n\n");
 				}
 			}
-			
+
 			return {
 				ts: new Date(row.time_created).toISOString(),
 				role: data.role,
-				content: content || '[no content]',
+				content: content || "[no content]",
 				messageID: row.id,
 			};
 		} catch (e) {

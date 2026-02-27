@@ -40,8 +40,9 @@ export const memHistoryTool = tool({
 				return "memsearch CLI not found. Please install it with: pip install memsearch";
 			}
 
-			const result =
-				await $`memsearch list-collections --output json`.quiet().nothrow();
+			const result = await $`memsearch list-collections --output json`
+				.quiet()
+				.nothrow();
 
 			if (result.exitCode !== 0) {
 				return "Failed to get collections from memsearch";

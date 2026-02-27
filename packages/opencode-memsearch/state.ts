@@ -13,13 +13,16 @@ export const state = {
 	MIN_PROCESS_INTERVAL_MS: 60000,
 };
 
-export function shouldSkipSession(sessionId: string, session?: SessionInfo): boolean {
+export function shouldSkipSession(
+	sessionId: string,
+	session?: SessionInfo,
+): boolean {
 	if (!sessionId) return true;
 	if (session?.parentID) return true;
 	if (sessionId.includes("subagent")) return true;
 	if (sessionId.includes("task-")) return true;
 	if (sessionId.includes("background-")) return true;
-	
+
 	return false;
 }
 

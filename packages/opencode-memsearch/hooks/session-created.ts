@@ -1,26 +1,26 @@
 import type { PluginInput } from "@opencode-ai/plugin";
 import { signalSessionActivity } from "../lib/memory-queue";
-import { shouldSkipSession, isThrottled, type SessionInfo } from "../state";
+import { isThrottled, type SessionInfo, shouldSkipSession } from "../state";
 
 export const onSessionCreated = async (event: any, ctx: PluginInput) => {
-  const session: SessionInfo | undefined = event?.properties?.info;
-  const sessionId = session?.id ?? event?.sessionID ?? event?.sessionId;
+	const session: SessionInfo | undefined = event?.properties?.info;
+	const sessionId = session?.id ?? event?.sessionID ?? event?.sessionId;
 
-  if (shouldSkipSession(sessionId, session)) {
-    return;
-  }
+	if (shouldSkipSession(sessionId, session)) {
+		return;
+	}
 
-  if (isThrottled(sessionId)) {
-    return;
-  }
+	if (isThrottled(sessionId)) {
+		return;
+	}
 
-  await signalSessionActivity(
-    'session-created',
-    sessionId,
-    ctx.project?.id || ctx.directory,
-    ctx.directory,
-    { sessionTitle: session?.title }
-  );
+	await signalSessionActivity(
+		"session-created",
+		sessionId,
+		ctx.project?.id || ctx.directory,
+		ctx.directory,
+		{ sessionTitle: session?.title },
+	);
 };
 
 export default { onSessionCreated };
