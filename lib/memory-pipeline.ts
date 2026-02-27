@@ -27,13 +27,14 @@ export async function processMemoryJob(job: MemoryJob): Promise<ProcessResult> {
 }
 
 async function processSessionCreated(job: MemoryJob): Promise<ProcessResult> {
-  const { directory, sessionId } = job;
+  const { directory, sessionId, projectId } = job;
   
   const isAvailable = await cli.checkAvailability();
   if (!isAvailable) {
     return { success: false, error: 'CLI not available' };
   }
   
+  // Start file watcher if not already running (non-blocking)
   if (!state.watcherRunning) {
     state.watcherRunning = true;
     (async () => {
@@ -45,13 +46,12 @@ async function processSessionCreated(job: MemoryJob): Promise<ProcessResult> {
     })();
   }
   
-  try {
-    await cli.index(directory, { recursive: true } as any);
-    markSessionProcessed(sessionId);
-    return { success: true, data: { indexed: true } };
-  } catch (err) {
-    return { success: false, error: String(err) };
-  }
+  // Note: Full indexing on every session creation is too slow for large projects.
+  // The watcher handles incremental updates. Manual indexing can be triggered
+  // via the mem-index tool when needed.
+  console.log(`[memsearch] ${projectId}: Started watcher for ${directory}`);
+  markSessionProcessed(sessionId);
+  return { success: true, data: { watcherStarted: true } };
 }
 
 async function processSessionIdle(job: MemoryJob): Promise<ProcessResult> {
