@@ -43,17 +43,17 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 		},
 		event: async ({ event }) => {
 			const evType = (event as { type?: string }).type;
-			const sessionID = (event as { sessionID?: string })?.sessionID || 
-			                  (event as { data?: { sessionID?: string } })?.data?.sessionID;
-			
-			if (evType === "session.created") {
-				console.log(`[memsearch] session.created FULL EVENT:`, JSON.stringify(event, null, 2));
-			}
+			const ev = event as { 
+				sessionID?: string; 
+				data?: { sessionID?: string };
+				properties?: { info?: { id?: string } };
+			};
+			const sessionID = ev.sessionID || ev.data?.sessionID || ev.properties?.info?.id;
 			
 			console.log(`[memsearch] Event received: ${evType}, sessionID: ${sessionID}`);
 			
-			if (evType === "session.start" && sessionID) {
-				console.log(`[memsearch] Handling session.start for ${sessionID}`);
+			if (evType === "session.created" && sessionID) {
+				console.log(`[memsearch] Handling session.created for ${sessionID}`);
 				
 				if (shouldSkipSession(sessionID)) {
 					console.log(`[memsearch] Skipping session: ${sessionID}`);
@@ -66,9 +66,9 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 						sessionID,
 						project?.id || directory,
 						directory,
-						{ event: 'session.start' }
+						{ event: 'session.created' }
 					);
-					console.log(`[memsearch] Queued session.start for ${sessionID}`);
+					console.log(`[memsearch] Queued session.created for ${sessionID}`);
 				} catch (err) {
 					console.error(`[memsearch] Failed to queue session:`, err);
 				}
