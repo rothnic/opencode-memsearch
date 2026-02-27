@@ -12,9 +12,6 @@ interface SessionInfo {
 	message_count: number;
 }
 
-const BATCH_SIZE = 50;
-const MAX_AGE_DAYS = 30;
-
 function getDatabasePath(): string {
 	return join(
 		process.env.HOME || "",
@@ -25,9 +22,8 @@ function getDatabasePath(): string {
 	);
 }
 
-async function queryRecentSessions(): Promise<SessionInfo[]> {
+async function queryAllSessions(): Promise<SessionInfo[]> {
 	const dbPath = getDatabasePath();
-	const cutoffTime = Date.now() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
 
 	try {
 		const db = new Database(dbPath, { readonly: true });
@@ -43,12 +39,10 @@ async function queryRecentSessions(): Promise<SessionInfo[]> {
 					COUNT(m.id) as message_count
 				 FROM session s
 				 LEFT JOIN message m ON m.session_id = s.id
-				 WHERE s.time_updated > ?
 				 GROUP BY s.id
-				 ORDER BY s.time_updated DESC
-				 LIMIT 500`,
+				 ORDER BY s.time_updated DESC`,
 			)
-			.all(cutoffTime) as any[];
+			.all() as any[];
 
 		db.close();
 
@@ -114,48 +108,44 @@ async function queueSession(session: SessionInfo): Promise<void> {
 		);
 	} catch (err) {
 		if ((err as Error).message?.includes("UNIQUE constraint")) {
-			// Session already queued, ignore
 			return;
 		}
 		console.error(`[backfill] Failed to queue session ${session.id}:`, err);
 	}
 }
 
-export async function backfillRecentSessions(): Promise<{
+export async function backfillAllSessions(): Promise<{
 	queued: number;
 	total: number;
 }> {
-	const sessions = await queryRecentSessions();
+	const sessions = await queryAllSessions();
 
 	if (sessions.length === 0) {
 		return { queued: 0, total: 0 };
 	}
 
-	// Process in batches with delay
+	// Queue all sessions - bunqueue will handle rate limiting
 	let queued = 0;
-	for (let i = 0; i < sessions.length; i += BATCH_SIZE) {
-		const batch = sessions.slice(i, i + BATCH_SIZE);
+	for (const session of sessions) {
+		await queueSession(session);
+		queued++;
 
-		await Promise.all(batch.map((session) => queueSession(session)));
-		queued += batch.length;
-
-		// Small delay between batches to avoid overwhelming
-		if (i + BATCH_SIZE < sessions.length) {
-			await new Promise((resolve) => setTimeout(resolve, 100));
+		if (queued % 100 === 0) {
+			console.log(`[backfill] Queued ${queued}/${sessions.length} sessions...`);
 		}
 	}
 
+	console.log(`[backfill] Complete: ${queued} sessions queued`);
 	return { queued, total: sessions.length };
 }
 
 export function startBackfillInBackground(): void {
-	// Run backfill asynchronously without blocking
 	setTimeout(async () => {
 		try {
-			const result = await backfillRecentSessions();
+			const result = await backfillAllSessions();
 			if (result.queued > 0) {
 				console.log(
-					`[backfill] Queued ${result.queued} recent sessions in background`,
+					`[backfill] Queued ${result.queued} sessions in background`,
 				);
 			}
 		} catch (err) {
@@ -165,7 +155,7 @@ export function startBackfillInBackground(): void {
 }
 
 export async function checkForUnprocessedSessions(): Promise<void> {
-	const result = await backfillRecentSessions();
+	const result = await backfillAllSessions();
 
 	if (result.queued > 0) {
 		console.log(`[backfill] Found ${result.queued} unprocessed sessions`);

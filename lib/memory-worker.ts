@@ -66,6 +66,8 @@ const worker = new Worker(
 		} finally {
 			// Always unmark project when done
 			unmarkProjectProcessing(jobData.projectId);
+			// Add small delay between jobs to avoid overwhelming
+			await new Promise((resolve) => setTimeout(resolve, 500));
 		}
 	},
 	{
