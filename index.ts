@@ -13,9 +13,26 @@ import memSearchTool from "./tools/search";
 import memWatchTool from "./tools/watch";
 import "./lib/memory-worker";
 import { basename } from "path";
+import { $ } from "bun";
+
+async function getProjectDisplayName(directory: string): Promise<string> {
+	const folderName = basename(directory);
+	
+	try {
+		const result = await $`cd ${directory} && git branch --show-current 2>/dev/null`.quiet();
+		const branch = result.text().trim();
+		if (branch) {
+			return `${folderName}:${branch}`;
+		}
+	} catch {
+		// Not a git repo or no branch
+	}
+	
+	return folderName;
+}
 
 const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
-	const projectName = basename(directory || process.cwd());
+	const projectName = await getProjectDisplayName(directory || process.cwd());
 	return {
 		tool: {
 			"mem-index": memIndexTool,
