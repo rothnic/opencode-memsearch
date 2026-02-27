@@ -61,9 +61,11 @@ export class MemsearchCLI {
 	): Promise<void> {
 		await this.ensureAvailable();
 		let cmd = `memsearch index "${path}"`;
-		if (options.recursive) {
-			cmd += " --recursive";
-		}
+		// Note: --recursive is not supported in memsearch v0.1.8
+		// Re-enable when newer version supports it
+		// if (options.recursive) {
+		// 	cmd += " --recursive";
+		// }
 		if (options.collection) {
 			cmd += ` --collection "${options.collection}"`;
 		}
