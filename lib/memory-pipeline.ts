@@ -2,6 +2,7 @@ import type { MemoryJob } from './memory-queue';
 import { MemsearchCLI } from '../cli-wrapper';
 import { loadConfig } from '../config';
 import { state, markSessionProcessed } from '../state';
+import { checkDaemonHealth, restartSessionDaemon } from './session-daemon';
 
 const cli = new MemsearchCLI();
 
@@ -21,6 +22,8 @@ export async function processMemoryJob(job: MemoryJob): Promise<ProcessResult> {
       return processSessionDeleted(job);
     case 'manual-index':
       return processManualIndex(job);
+    case 'daemon-health-check':
+      return processDaemonHealthCheck(job);
     default:
       return { success: false, error: `Unknown job type: ${(job as any).type}` };
   }
@@ -46,9 +49,6 @@ async function processSessionCreated(job: MemoryJob): Promise<ProcessResult> {
     })();
   }
   
-  // Note: Full indexing on every session creation is too slow for large projects.
-  // The watcher handles incremental updates. Manual indexing can be triggered
-  // via the mem-index tool when needed.
   console.log(`[memsearch] ${projectId}: Started watcher for ${directory}`);
   markSessionProcessed(sessionId);
   return { success: true, data: { watcherStarted: true } };
@@ -88,4 +88,16 @@ async function processManualIndex(job: MemoryJob): Promise<ProcessResult> {
   } catch (err) {
     return { success: false, error: String(err) };
   }
+}
+
+async function processDaemonHealthCheck(job: MemoryJob): Promise<ProcessResult> {
+  const health = checkDaemonHealth();
+  
+  if (!health.healthy) {
+    console.log(`[memsearch] Daemon unhealthy, restarting: ${health.message}`);
+    restartSessionDaemon();
+    return { success: true, data: { restarted: true, previousHealth: health } };
+  }
+  
+  return { success: true, data: { healthy: true, stats: health } };
 }

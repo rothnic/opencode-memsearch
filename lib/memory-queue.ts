@@ -10,7 +10,7 @@ process.env.DATA_PATH = join(queueDataDir, 'memory.db');
 
 // Job type definition
 export interface MemoryJob {
-  type: 'session-created' | 'session-idle' | 'session-deleted' | 'manual-index';
+  type: 'session-created' | 'session-idle' | 'session-deleted' | 'manual-index' | 'daemon-health-check';
   sessionId: string;
   projectId: string;
   directory: string;

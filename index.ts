@@ -12,6 +12,7 @@ import memIndexTool from "./tools/index";
 import memSearchTool from "./tools/search";
 import memWatchTool from "./tools/watch";
 import "./lib/memory-worker";
+import { startSessionDaemon } from "./lib/session-daemon";
 import { basename } from "path";
 import { $ } from "bun";
 
@@ -32,6 +33,10 @@ async function getProjectDisplayName(directory: string): Promise<string> {
 }
 
 const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
+	// Start the session daemon (auto-registers on plugin load)
+	startSessionDaemon();
+	
+	// Queue daemon health check periodically (every ~30s via deduplication)
 	const projectName = await getProjectDisplayName(directory || process.cwd());
 	return {
 		tool: {
@@ -91,6 +96,20 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 				} catch (err) {
 					console.error(`[memsearch] Failed to queue session:`, err);
 				}
+				
+				// Also queue a daemon health check
+				try {
+					await signalSessionActivity(
+						'daemon-health-check',
+						'health-check',
+						'global',
+						directory,
+						{ triggeredBy: 'session.created' }
+					);
+				} catch (err) {
+					// Non-critical, don't fail session processing
+					console.log('[memsearch] Daemon health check queued');
+				}
 			}
 			
 			if (evType === "session.idle" && sessionID) {
@@ -107,6 +126,20 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 					console.log(`[memsearch] Queued session.idle for ${sessionID}`);
 				} catch (err) {
 					console.error(`[memsearch] Failed to queue idle:`, err);
+				}
+				
+				// Also queue a daemon health check
+				try {
+					await signalSessionActivity(
+						'daemon-health-check',
+						'health-check',
+						'global',
+						directory,
+						{ triggeredBy: 'session.idle' }
+					);
+				} catch (err) {
+					// Non-critical
+					console.log('[memsearch] Daemon health check queued');
 				}
 			}
 		},
