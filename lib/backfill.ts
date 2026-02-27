@@ -54,8 +54,7 @@ async function queryAllSessions(): Promise<SessionInfo[]> {
 			time_updated: row.time_updated,
 			message_count: row.message_count,
 		}));
-	} catch (err) {
-		console.error("[backfill] Failed to query sessions:", err);
+	} catch {
 		return [];
 	}
 }
@@ -94,9 +93,8 @@ async function queueSession(session: SessionInfo): Promise<void> {
 
 		const priority = calculatePriority(session);
 
-		// First queue fast markdown generation
 		await signalSessionActivity(
-			"generate-markdown",
+			"session-created",
 			session.id,
 			projectName,
 			session.directory,
@@ -107,11 +105,8 @@ async function queueSession(session: SessionInfo): Promise<void> {
 				timeUpdated: session.time_updated,
 			},
 		);
-	} catch (err) {
-		if ((err as Error).message?.includes("UNIQUE constraint")) {
-			return;
-		}
-		console.error(`[backfill] Failed to queue session ${session.id}:`, err);
+	} catch {
+		// Silent fail
 	}
 }
 
@@ -125,40 +120,25 @@ export async function backfillAllSessions(): Promise<{
 		return { queued: 0, total: 0 };
 	}
 
-	// Queue all sessions - bunqueue will handle rate limiting
 	let queued = 0;
 	for (const session of sessions) {
 		await queueSession(session);
 		queued++;
-
-		if (queued % 100 === 0) {
-			console.log(`[backfill] Queued ${queued}/${sessions.length} sessions...`);
-		}
 	}
 
-	console.log(`[backfill] Complete: ${queued} sessions queued`);
 	return { queued, total: sessions.length };
 }
 
 export function startBackfillInBackground(): void {
 	setTimeout(async () => {
 		try {
-			const result = await backfillAllSessions();
-			if (result.queued > 0) {
-				console.log(
-					`[backfill] Queued ${result.queued} sessions in background`,
-				);
-			}
-		} catch (err) {
-			console.error("[backfill] Background backfill failed:", err);
+			await backfillAllSessions();
+		} catch {
+			// Silent fail
 		}
 	}, 100);
 }
 
 export async function checkForUnprocessedSessions(): Promise<void> {
-	const result = await backfillAllSessions();
-
-	if (result.queued > 0) {
-		console.log(`[backfill] Found ${result.queued} unprocessed sessions`);
-	}
+	await backfillAllSessions();
 }

@@ -44,8 +44,8 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 		startBackfillInBackground();
 
 		// Set up recurring 6-hour backfill job
-		setupRecurringJobs().catch((err) => {
-			console.error("[memsearch] Failed to setup recurring jobs:", err);
+		setupRecurringJobs().catch(() => {
+			// Silent fail
 		});
 	}
 
@@ -87,15 +87,8 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 			const sessionID =
 				ev.sessionID || ev.data?.sessionID || ev.properties?.info?.id;
 
-			console.log(
-				`[memsearch] Event received: ${evType}, sessionID: ${sessionID}`,
-			);
-
 			if (evType === "session.created" && sessionID) {
-				console.log(`[memsearch] Handling session.created for ${sessionID}`);
-
 				if (shouldSkipSession(sessionID)) {
-					console.log(`[memsearch] Skipping session: ${sessionID}`);
 					return;
 				}
 
@@ -107,15 +100,12 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 						directory,
 						{ event: "session.created" },
 					);
-					console.log(`[memsearch] Queued session.created for ${sessionID}`);
-				} catch (err) {
-					console.error(`[memsearch] Failed to queue session:`, err);
+				} catch {
+					// Silent fail
 				}
 			}
 
 			if (evType === "session.idle" && sessionID) {
-				console.log(`[memsearch] Handling session.idle for ${sessionID}`);
-
 				try {
 					await signalSessionActivity(
 						"session-idle",
@@ -124,9 +114,8 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 						directory,
 						{ event: "session.idle" },
 					);
-					console.log(`[memsearch] Queued session.idle for ${sessionID}`);
-				} catch (err) {
-					console.error(`[memsearch] Failed to queue idle:`, err);
+				} catch {
+					// Silent fail
 				}
 			}
 		},
