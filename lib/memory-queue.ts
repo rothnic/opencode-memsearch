@@ -70,7 +70,7 @@ export async function setupRecurringJobs(): Promise<void> {
     await queue.upsertJobScheduler(
       'backfill-check',
       {
-        cron: '0 */6 * * *',
+        every: 6 * 60 * 60 * 1000,
       },
       {
         name: 'backfill-check',
@@ -89,7 +89,7 @@ export async function setupRecurringJobs(): Promise<void> {
       }
     );
     
-    console.log('[queue] Set up 6-hour recurring backfill job (cron: 0 */6 * * *)');
+    console.log('[queue] Set up 6-hour recurring backfill job');
   } catch (err) {
     console.error('[queue] Failed to set up recurring jobs:', err);
   }
