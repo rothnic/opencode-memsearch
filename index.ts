@@ -4,7 +4,8 @@ import { onSessionCreated } from "./hooks/session-created";
 import { onSessionIdle } from "./hooks/session-idle";
 import { onSystemTransform } from "./hooks/system-transform";
 import { onToolExecuted } from "./hooks/tool-executed";
-import { signalSessionActivity } from "./lib/memory-queue";
+import { signalSessionActivity, setupRecurringJobs } from "./lib/memory-queue";
+import { backfillAllSessions } from "./lib/backfill";
 import { shouldSkipSession } from "./state";
 import memCompactTool from "./tools/compact";
 import memExpandTool from "./tools/expand";
@@ -12,7 +13,6 @@ import memIndexTool from "./tools/index";
 import memSearchTool from "./tools/search";
 import memWatchTool from "./tools/watch";
 import "./lib/memory-worker";
-import { startSessionDaemon } from "./lib/session-daemon";
 import { basename } from "path";
 import { $ } from "bun";
 
@@ -32,11 +32,25 @@ async function getProjectDisplayName(directory: string): Promise<string> {
 	return folderName;
 }
 
+let initialized = false;
+
 const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
-	// Start the session daemon (auto-registers on plugin load)
-	startSessionDaemon();
+	// One-time initialization on first plugin load
+	if (!initialized) {
+		initialized = true;
+		
+		// Queue all existing sessions on startup
+		console.log('[memsearch] Initializing - queuing existing sessions...');
+		backfillAllSessions().catch(err => {
+			console.error('[memsearch] Failed to backfill sessions:', err);
+		});
+		
+		// Set up recurring 6-hour backfill job
+		setupRecurringJobs().catch(err => {
+			console.error('[memsearch] Failed to setup recurring jobs:', err);
+		});
+	}
 	
-	// Queue daemon health check periodically (every ~30s via deduplication)
 	const projectName = await getProjectDisplayName(directory || process.cwd());
 	return {
 		tool: {
@@ -96,20 +110,6 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 				} catch (err) {
 					console.error(`[memsearch] Failed to queue session:`, err);
 				}
-				
-				// Also queue a daemon health check
-				try {
-					await signalSessionActivity(
-						'daemon-health-check',
-						'health-check',
-						'global',
-						directory,
-						{ triggeredBy: 'session.created' }
-					);
-				} catch (err) {
-					// Non-critical, don't fail session processing
-					console.log('[memsearch] Daemon health check queued');
-				}
 			}
 			
 			if (evType === "session.idle" && sessionID) {
@@ -126,20 +126,6 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 					console.log(`[memsearch] Queued session.idle for ${sessionID}`);
 				} catch (err) {
 					console.error(`[memsearch] Failed to queue idle:`, err);
-				}
-				
-				// Also queue a daemon health check
-				try {
-					await signalSessionActivity(
-						'daemon-health-check',
-						'health-check',
-						'global',
-						directory,
-						{ triggeredBy: 'session.idle' }
-					);
-				} catch (err) {
-					// Non-critical
-					console.log('[memsearch] Daemon health check queued');
 				}
 			}
 		},

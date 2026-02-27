@@ -2,15 +2,14 @@ import { Queue } from 'bunqueue/client';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+import { checkForUnprocessedSessions } from './backfill';
 
-// Ensure queue data directory exists
 const queueDataDir = join(homedir(), '.config', 'opencode', 'memsearch', 'queue');
 mkdirSync(queueDataDir, { recursive: true });
 process.env.DATA_PATH = join(queueDataDir, 'memory.db');
 
-// Job type definition
 export interface MemoryJob {
-  type: 'session-created' | 'session-idle' | 'session-deleted' | 'manual-index' | 'daemon-health-check';
+  type: 'session-created' | 'session-idle' | 'session-deleted' | 'manual-index' | 'backfill';
   sessionId: string;
   projectId: string;
   directory: string;
@@ -20,7 +19,6 @@ export interface MemoryJob {
   data?: any;
 }
 
-// Create the global queue
 export const queue = new Queue<MemoryJob>('memsearch-memory', {
   embedded: true,
   defaultJobOptions: {
@@ -31,7 +29,6 @@ export const queue = new Queue<MemoryJob>('memsearch-memory', {
   },
 });
 
-// Job scheduling function
 export async function signalSessionActivity(
   type: MemoryJob['type'],
   sessionId: string,
@@ -58,4 +55,42 @@ export async function signalSessionActivity(
       replace: true,
     },
   });
+}
+
+let recurringJobsSetup = false;
+
+export async function setupRecurringJobs(): Promise<void> {
+  if (recurringJobsSetup) {
+    return;
+  }
+  
+  recurringJobsSetup = true;
+  
+  try {
+    await queue.upsertJobScheduler(
+      'backfill-check',
+      {
+        cron: '0 */6 * * *',
+      },
+      {
+        name: 'backfill-check',
+        data: {
+          type: 'backfill',
+          sessionId: 'backfill-check',
+          projectId: 'global',
+          directory: '',
+          timestamp: Date.now(),
+          priority: 0,
+          dedupKey: 'backfill-check',
+        } as MemoryJob,
+        opts: {
+          priority: 0,
+        },
+      }
+    );
+    
+    console.log('[queue] Set up 6-hour recurring backfill job (cron: 0 */6 * * *)');
+  } catch (err) {
+    console.error('[queue] Failed to set up recurring jobs:', err);
+  }
 }

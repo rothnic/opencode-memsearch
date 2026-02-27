@@ -2,7 +2,7 @@ import type { MemoryJob } from './memory-queue';
 import { MemsearchCLI } from '../cli-wrapper';
 import { loadConfig } from '../config';
 import { state, markSessionProcessed } from '../state';
-import { checkDaemonHealth, restartSessionDaemon } from './session-daemon';
+import { checkForUnprocessedSessions } from './backfill';
 
 const cli = new MemsearchCLI();
 
@@ -22,8 +22,8 @@ export async function processMemoryJob(job: MemoryJob): Promise<ProcessResult> {
       return processSessionDeleted(job);
     case 'manual-index':
       return processManualIndex(job);
-    case 'daemon-health-check':
-      return processDaemonHealthCheck(job);
+    case 'backfill':
+      return processBackfill(job);
     default:
       return { success: false, error: `Unknown job type: ${(job as any).type}` };
   }
@@ -37,7 +37,6 @@ async function processSessionCreated(job: MemoryJob): Promise<ProcessResult> {
     return { success: false, error: 'CLI not available' };
   }
   
-  // Start file watcher if not already running (non-blocking)
   if (!state.watcherRunning) {
     state.watcherRunning = true;
     (async () => {
@@ -90,14 +89,11 @@ async function processManualIndex(job: MemoryJob): Promise<ProcessResult> {
   }
 }
 
-async function processDaemonHealthCheck(job: MemoryJob): Promise<ProcessResult> {
-  const health = checkDaemonHealth();
-  
-  if (!health.healthy) {
-    console.log(`[memsearch] Daemon unhealthy, restarting: ${health.message}`);
-    restartSessionDaemon();
-    return { success: true, data: { restarted: true, previousHealth: health } };
+async function processBackfill(job: MemoryJob): Promise<ProcessResult> {
+  try {
+    await checkForUnprocessedSessions();
+    return { success: true, data: { backfillComplete: true } };
+  } catch (err) {
+    return { success: false, error: String(err) };
   }
-  
-  return { success: true, data: { healthy: true, stats: health } };
 }
