@@ -94,8 +94,9 @@ async function queueSession(session: SessionInfo): Promise<void> {
 
 		const priority = calculatePriority(session);
 
+		// First queue fast markdown generation
 		await signalSessionActivity(
-			"session-created",
+			"generate-markdown",
 			session.id,
 			projectName,
 			session.directory,

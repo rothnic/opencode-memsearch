@@ -16,6 +16,7 @@ process.env.DATA_PATH = join(queueDataDir, "memory.db");
 
 export interface MemoryJob {
 	type:
+		| "generate-markdown"
 		| "session-created"
 		| "session-idle"
 		| "session-deleted"
