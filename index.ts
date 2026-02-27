@@ -9,6 +9,8 @@ import memExpandTool from "./tools/expand";
 import memIndexTool from "./tools/index";
 import memSearchTool from "./tools/search";
 import memWatchTool from "./tools/watch";
+// Import to initialize queue and worker
+import "./lib/memory-worker";
 
 const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 	return {
