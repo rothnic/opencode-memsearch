@@ -12,8 +12,10 @@ import memIndexTool from "./tools/index";
 import memSearchTool from "./tools/search";
 import memWatchTool from "./tools/watch";
 import "./lib/memory-worker";
+import { basename } from "path";
 
 const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
+	const projectName = basename(directory || process.cwd());
 	return {
 		tool: {
 			"mem-index": memIndexTool,
@@ -64,7 +66,7 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 					await signalSessionActivity(
 						'session-created',
 						sessionID,
-						project?.id || directory,
+						projectName,
 						directory,
 						{ event: 'session.created' }
 					);
@@ -81,7 +83,7 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 					await signalSessionActivity(
 						'session-idle',
 						sessionID,
-						project?.id || directory,
+						projectName,
 						directory,
 						{ event: 'session.idle' }
 					);
