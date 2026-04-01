@@ -4,7 +4,7 @@ import type {
 	MemsearchConfig,
 	SearchOptions,
 	SearchResponse,
-} from "./types";
+} from "./types/index";
 
 export interface MemsearchStats {
 	documentCount: number;

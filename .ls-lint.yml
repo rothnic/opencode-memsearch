@@ -1,0 +1,27 @@
+ls:
+  .md: screamingsnakecase  # Only for special files (README.md, LICENSE.md, etc.)
+  .ts: kebabcase
+  .tsx: kebabcase
+  .js: kebabcase
+  .json: kebabcase
+  .yml: kebabcase
+  .yaml: kebabcase
+  .toml: kebabcase
+
+ignore:
+  - node_modules
+  - .git
+  - .roam
+  - dist
+  - build
+  - .memsearch
+  - .ruff_cache
+  - .sisyphus
+  - .maestro
+  - .weave
+  - .opencode
+  - logs
+  - memory
+  - memsearch_data
+  - tmpcd
+  - .DS_Store

@@ -3,7 +3,7 @@
  * Test compaction with limited sessions
  */
 
-import { MemsearchCLI } from "../cli-wrapper";
+import { MemsearchCLI } from "../lib/cli-wrapper";
 
 const WORKDIR = "/Users/nroth/workspace/opencode-memsearch";
 const SESSIONS_DIR = `${WORKDIR}/.memsearch/sessions`;

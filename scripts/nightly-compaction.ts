@@ -11,7 +11,7 @@
  * Compaction summarizes what's already indexed, not re-index everything.
  */
 
-import { MemsearchCLI, MemsearchTimeoutError } from "../cli-wrapper";
+import { MemsearchCLI, MemsearchTimeoutError } from "../lib/cli-wrapper";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 

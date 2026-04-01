@@ -5,12 +5,12 @@
  * and config-yaml MemoryTypeConfig (tagLists[] + additionalPrompt).
  */
 
-import type { MemoryTypeConfig } from "./memory-type-config";
+import type { MemoryTypeConfig } from "../types/memory-type-config";
 import type {
 	SessionHistoryEntry,
 	SessionWithHistory,
-} from "./session-indexer";
-import { isSystemMessage } from "./session-indexer";
+} from "../processing/session-indexer";
+import { isSystemMessage } from "../processing/session-indexer";
 
 export interface TagListInfo {
 	id: string;

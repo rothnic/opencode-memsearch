@@ -1,5 +1,5 @@
 import type { PluginInput } from "@opencode-ai/plugin";
-import { state } from "../state";
+import { state } from "../lib/state";
 
 export const onSessionDeleted = async (event: any, ctx: PluginInput) => {
 	const sessionId = event.sessionID || event.sessionId;

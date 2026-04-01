@@ -4,10 +4,16 @@ import { onSessionCreated } from "./hooks/session-created";
 import { onSessionIdle } from "./hooks/session-idle";
 import { onSystemTransform } from "./hooks/system-transform";
 import { onToolExecuted } from "./hooks/tool-executed";
-import loadConfig from "./config";
+import loadConfig from "./lib/config";
+import { shouldSkipSession } from "./lib/state";
 import { startBackfillInBackground } from "./lib/queue/backfill";
 import { setupRecurringJobs, signalSessionActivity } from "./lib/queue/memory-queue";
 import "./lib/queue/memory-worker";
+import { memIndexTool } from "./tools/index";
+import { memSearchTool } from "./tools/search";
+import { memWatchTool } from "./tools/watch";
+import { memCompactTool } from "./tools/compact";
+import { memExpandTool } from "./tools/expand";
 import { $ } from "bun";
 import { basename } from "path";
 
@@ -29,7 +35,7 @@ async function getProjectDisplayName(directory: string): Promise<string> {
 }
 
 let initialized = false;
-let globalConfig: import("./types").MemsearchConfig | null = null;
+let globalConfig: import("./lib/types/index").MemsearchConfig | null = null;
 
 // Track which projects have had their initial backfill run
 const backfillInitializedProjects = new Set<string>();

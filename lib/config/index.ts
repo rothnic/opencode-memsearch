@@ -6,9 +6,9 @@ import {
 	hasYamlConfig,
 	loadYamlConfig,
 	mergeWithLegacyConfig,
-} from "./lib/types/config-yaml";
-import { loadMemoryTypes } from "./lib/types/memory-type-config-loader";
-import type { MemorySource, MemsearchConfig, SmartSearchConfig, FeatureFlags } from "./types";
+} from "../types/config-yaml";
+import { loadMemoryTypes } from "../types/memory-type-config-loader";
+import type { MemorySource, MemsearchConfig, SmartSearchConfig, FeatureFlags } from "../types/index";
 
 /**
  * Migration warning details for legacy config users

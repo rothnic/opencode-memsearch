@@ -8,8 +8,8 @@ import { existsSync, mkdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { CompactionConfig, MemoryTypeConfig } from "./config-yaml";
-import type { ScopedWriter } from "./scoped-writer";
+import type { CompactionConfig, MemoryTypeConfig } from "../types/config-yaml";
+import type { ScopedWriter } from "../llm/scoped-writer";
 
 /**
  * Error codes for compaction capture operations

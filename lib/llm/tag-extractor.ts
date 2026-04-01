@@ -5,7 +5,7 @@
  *              keyword matching and heuristic detection.
  */
 
-import type { MemoryTypeConfig, TagListConfig } from "./config-yaml";
+import type { MemoryTypeConfig, TagListConfig } from "../types/config-yaml";
 
 // ============================================
 // Types

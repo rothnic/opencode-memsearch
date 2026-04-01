@@ -1,8 +1,8 @@
 import { tool } from "@opencode-ai/plugin";
 import path from "path";
-import type { TranscriptEntry } from "../cli-wrapper";
-import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
-import type { MemsearchToolContext } from "../types";
+import type { TranscriptEntry } from "../lib/cli-wrapper";
+import { MemsearchCLI, MemsearchNotFoundError } from "../lib/cli-wrapper";
+import type { MemsearchToolContext } from "../lib/types/index";
 
 interface Turn {
 	type: "message" | "tool_execution" | "search";

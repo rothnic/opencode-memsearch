@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { MemoryTypeConfig } from "./memory-type-config";
+import type { MemoryTypeConfig } from "../types/memory-type-config";
 import {
 	BASE_SYSTEM_PROMPT,
 	buildExtractionSchema,
@@ -13,7 +13,7 @@ import {
 	type TagListInfo,
 	toPromptMemoryType,
 } from "./prompt-builder";
-import type { SessionWithHistory } from "./session-indexer";
+import type { SessionWithHistory } from "../processing/session-indexer";
 
 const makeSession = (
 	overrides?: Partial<SessionWithHistory>,

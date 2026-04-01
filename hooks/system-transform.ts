@@ -1,6 +1,6 @@
 import type { PluginInput } from "@opencode-ai/plugin";
-import { MemsearchCLI } from "../cli-wrapper";
-import { loadConfig } from "../config";
+import { MemsearchCLI } from "../lib/cli-wrapper";
+import { loadConfig } from "../lib/config";
 
 /**
  * Hook to inject relevant memories into the system prompt based on user query.

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { MemoryTypeConfig } from "./memory-type-config";
+import type { MemoryTypeConfig } from "../types/memory-type-config";
 import type { SessionWithHistory } from "./session-indexer";
 import type {
 	ExtractionStats,

@@ -1,9 +1,9 @@
 import { tool } from "@opencode-ai/plugin";
 import fs from "fs";
 import path from "path";
-import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
-import loadConfig from "../config";
-import type { MemsearchToolContext } from "../types";
+import { MemsearchCLI, MemsearchNotFoundError } from "../lib/cli-wrapper";
+import loadConfig from "../lib/config";
+import type { MemsearchToolContext } from "../lib/types/index";
 
 type Check = { name: string; ok: boolean; detail?: string; fix?: string };
 

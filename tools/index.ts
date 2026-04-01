@@ -1,6 +1,6 @@
 import { tool } from "@opencode-ai/plugin";
-import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
-import type { MemsearchToolContext } from "../types";
+import { MemsearchCLI, MemsearchNotFoundError } from "../lib/cli-wrapper";
+import type { MemsearchToolContext } from "../lib/types/index";
 
 export const memIndexTool = tool({
 	description: "Index files/dirs into memsearch local index",
