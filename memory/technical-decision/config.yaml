@@ -1,0 +1,56 @@
+# config for 'technical-decision' memory type
+# Captures architectural decisions, implementation choices, and technical trade-offs
+
+name: technical-decision
+description: |
+  Captures technical decisions, architectural choices, implementation trade-offs, 
+  and rationale from development sessions. These are the "why" behind code changes,
+  design patterns, and technology selections that future developers need to understand.
+collection: technical_decisions
+extractionPrompt: |
+  You are analyzing a development session transcript to extract technical decisions.
+  
+  Look for:
+  - Architecture or design choices ("we should use X instead of Y")
+  - Implementation trade-offs discussed (performance vs maintainability, etc.)
+  - Technology selections and their rationale
+  - Code organization decisions
+  - API design choices
+  - Database or storage decisions
+  - Security or performance decisions
+  - Testing strategy decisions
+  
+  For each technical decision found, extract:
+  - title: A clear, concise summary (5-12 words)
+  - context: What problem or situation led to this decision
+  - decision: What was decided
+  - rationale: Why this choice was made (benefits, trade-offs)
+  - alternatives: Other options considered (if mentioned)
+  - consequences: Impact or implications of this decision
+  - confidence: How certain the decision is (0.0-1.0)
+  
+  Only extract genuine technical decisions with clear rationale. 
+  Skip vague discussions, TODOs, or exploratory thoughts without conclusions.
+  
+  Return as a YAML list where each item has: title, context, decision, rationale, alternatives, consequences, confidence, tags
+
+model: openai/gpt-4o-mini
+tags:
+  - technical-decision
+  - architecture
+  - implementation
+  - trade-off
+  - design-pattern
+  - performance
+  - security
+  - api-design
+enabled: true
+
+frequency:
+  mode: manual
+  intervalMinutes: 60
+  onCompact: false
+
+output:
+  path: memory/technical-decision
+  filenamePattern: "{date}_{session_id}_{hash}.md"

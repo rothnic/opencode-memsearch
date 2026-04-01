@@ -4,6 +4,7 @@ import { onSessionCreated } from "./hooks/session-created";
 import { onSessionIdle } from "./hooks/session-idle";
 import { onSystemTransform } from "./hooks/system-transform";
 import { onToolExecuted } from "./hooks/tool-executed";
+import loadConfig from "./config";
 import { startBackfillInBackground } from "./lib/backfill";
 import { setupRecurringJobs, signalSessionActivity } from "./lib/memory-queue";
 import { shouldSkipSession } from "./state";
@@ -34,22 +35,59 @@ async function getProjectDisplayName(directory: string): Promise<string> {
 }
 
 let initialized = false;
+let globalConfig: import("./types").MemsearchConfig | null = null;
+
+// Track which projects have had their initial backfill run
+const backfillInitializedProjects = new Set<string>();
 
 const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
+	// Load config on first plugin load
+	if (!globalConfig) {
+		try {
+			globalConfig = await loadConfig(directory || process.cwd());
+		} catch {
+			// If config fails to load, use defaults (feature flags will be undefined = defaults)
+			globalConfig = null;
+		}
+	}
+
+	const featureFlags = globalConfig?.featureFlags;
+	const projectId = project?.id || directory || process.cwd();
+
 	// One-time initialization on first plugin load
 	if (!initialized) {
 		initialized = true;
 
-		// Queue recent sessions in background (non-blocking)
-		startBackfillInBackground();
-
-		// Set up recurring 6-hour backfill job
-		setupRecurringJobs().catch(() => {
-			// Silent fail
-		});
+		// Set up recurring jobs if enabled (default: true)
+		if (featureFlags?.enableRecurringJobs !== false) {
+			setupRecurringJobs().catch(() => {
+				// Silent fail
+			});
+		}
 	}
 
 	const projectName = await getProjectDisplayName(directory || process.cwd());
+
+	// Build hooks object conditionally based on feature flags
+	const hooks: Record<string, any> = {
+		"session.created": onSessionCreated,
+		"session.deleted": (await import("./hooks/session-deleted"))
+			.onSessionDeleted,
+		"experimental.session.compacting": onSessionCompacting,
+		"tool.execute.after": onToolExecuted,
+	};
+
+	// Only register session.idle if explicitly enabled (default: false)
+	// This hook can be expensive due to LLM summarization
+	if (featureFlags?.enableSessionIdleSummarization === true) {
+		hooks["session.idle"] = onSessionIdle;
+	}
+
+	// Only register system transform if enabled (default: true)
+	if (featureFlags?.enableSystemTransform !== false) {
+		hooks["experimental.chat.system.transform"] = onSystemTransform;
+	}
+
 	return {
 		tool: {
 			"mem-index": memIndexTool,
@@ -64,19 +102,7 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 			"mem-transcript": (await import("./tools/transcript")).default,
 			"mem-doctor": (await import("./tools/doctor")).default,
 		},
-		hook: {
-			"session.created": onSessionCreated,
-			"session.deleted": (await import("./hooks/session-deleted"))
-				.onSessionDeleted,
-			"session.idle": onSessionIdle,
-			"experimental.session.compacting": onSessionCompacting,
-			"experimental.chat.system.transform": onSystemTransform,
-			"message.updated": (await import("./hooks/message-updated"))
-				.onMessageUpdated,
-			"message.part.updated": (await import("./hooks/message-updated"))
-				.onMessagePartUpdated,
-			"tool.execute.after": onToolExecuted,
-		},
+		hook: hooks,
 		event: async ({ event }) => {
 			const evType = (event as { type?: string }).type;
 			const ev = event as {
@@ -92,27 +118,35 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 					return;
 				}
 
+				// Run backfill on first session for this project (if enabled)
+				if (featureFlags?.enableBackfill !== false && !backfillInitializedProjects.has(projectId)) {
+					backfillInitializedProjects.add(projectId);
+					// Run backfill in background (non-blocking)
+					startBackfillInBackground();
+				}
+
 				try {
 					await signalSessionActivity(
 						"session-created",
 						sessionID,
 						projectName,
 						directory,
-						{ event: "session.created" },
+						{ event: "session.created", priority: 10 },
 					);
 				} catch {
 					// Silent fail
 				}
 			}
 
-			if (evType === "session.idle" && sessionID) {
+			// Only handle session.idle if the feature is enabled
+			if (evType === "session.idle" && sessionID && featureFlags?.enableSessionIdleSummarization === true) {
 				try {
 					await signalSessionActivity(
 						"session-idle",
 						sessionID,
 						projectName,
 						directory,
-						{ event: "session.idle" },
+						{ event: "session.idle", priority: 15 },
 					);
 				} catch {
 					// Silent fail

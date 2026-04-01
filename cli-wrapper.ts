@@ -28,12 +28,21 @@ export class MemsearchNotFoundError extends Error {
 	}
 }
 
+export class MemsearchTimeoutError extends Error {
+	constructor(duration: number) {
+		super(`memsearch operation timed out after ${duration}ms`);
+		this.name = "MemsearchTimeoutError";
+	}
+}
+
 export class MemsearchCLI {
 	private isAvailable: boolean | null = null;
 	private shell: any;
+	private defaultTimeout: number;
 
-	constructor(shell?: any) {
+	constructor(shell?: any, defaultTimeout = 60000) {
 		this.shell = shell || $;
+		this.defaultTimeout = defaultTimeout;
 	}
 
 	async checkAvailability(): Promise<boolean> {
@@ -54,16 +63,33 @@ export class MemsearchCLI {
 		}
 	}
 
+	private async withTimeout<T>(
+		promise: Promise<T>,
+		timeoutMs: number,
+	): Promise<T> {
+		const timeout = new Promise<never>((_, reject) => {
+			setTimeout(() => {
+				reject(new MemsearchTimeoutError(timeoutMs));
+			}, timeoutMs);
+		});
+		return Promise.race([promise, timeout]);
+	}
+
 	async index(
 		path: string,
-		options: { collection?: string } = {},
+		options: { collection?: string; timeout?: number } = {},
 	): Promise<void> {
 		await this.ensureAvailable();
 		let cmd = `memsearch index "${path}"`;
 		if (options.collection) {
 			cmd += ` --collection "${options.collection}"`;
 		}
-		await this.shell`sh -c ${cmd}`.throws(true);
+
+		const timeoutMs = options.timeout || this.defaultTimeout;
+		await this.withTimeout(
+			this.shell`sh -c ${cmd}`.throws(true),
+			timeoutMs,
+		);
 	}
 
 	async search(
@@ -114,7 +140,8 @@ export class MemsearchCLI {
 		await this.ensureAvailable();
 		// Run memsearch compact and return its stdout as the compaction summary.
 		// Use .text() so we capture the summary content produced by memsearch.
-		const output = await this.shell`sh -c "memsearch compact"`.text();
+		const output = await this
+			.shell`sh -c "memsearch compact"`.text();
 		return output;
 	}
 
@@ -132,7 +159,10 @@ export class MemsearchCLI {
 		return JSON.parse(output) as TranscriptEntry[];
 	}
 
-	async config(action: "get", key?: string): Promise<Partial<MemsearchConfig>>;
+	async config(
+		action: "get",
+		key?: string,
+	): Promise<Partial<MemsearchConfig>>;
 	async config(action: "set", key: string, value: string): Promise<void>;
 	async config(
 		action: "get" | "set",
@@ -169,13 +199,13 @@ export class MemsearchCLI {
 			return JSON.parse(trimmed) as MemsearchStats;
 		} catch {
 			// Fallback: try to extract numbers from plain text like:
-			// "Documents: 10\nChunks: 123\nIndex size: 456 bytes"
-			const docMatch = trimmed.match(/Document[s]?:\s*(\d+)/i);
-			const chunkMatch = trimmed.match(/Chunk[s]?:\s*(\d+)/i);
-			const sizeMatch = trimmed.match(/Index\s*size:\s*([0-9,]+)\s*bytes/i);
-			const documentCount = docMatch ? Number(docMatch[1]) : 0;
+			// "Total indexed chunks: 198" or "Documents: 10\nChunks: 123"
+			const chunkMatch = trimmed.match(/chunks?:\s*(\d+)/i);
 			const chunkCount = chunkMatch ? Number(chunkMatch[1]) : 0;
-			const indexSize = sizeMatch ? Number(sizeMatch[1].replace(/,/g, "")) : 0;
+			// For now, use chunkCount as documentCount since memsearch
+			// stats doesn't distinguish between them in the text output
+			const documentCount = chunkCount;
+			const indexSize = 0;
 			return { documentCount, chunkCount, indexSize };
 		}
 	}
@@ -190,7 +220,8 @@ export class MemsearchCLI {
 		// We don't call ensureAvailable() because the version command itself
 		// is the availability probe and may throw if the binary is missing.
 		try {
-			const output = await this.shell`sh -c "memsearch --version"`.text();
+			const output = await this
+				.shell`sh -c "memsearch --version"`.text();
 			return output.trim();
 		} catch (err) {
 			// Normalize to a consistent error when the binary isn't present.

@@ -1,14 +1,13 @@
-import { MemsearchCLI } from "../cli-wrapper";
+import { MemsearchCLI, MemsearchTimeoutError } from "../cli-wrapper";
 import { loadConfig } from "../config";
 import { markSessionProcessed, state } from "../state";
 import { checkForUnprocessedSessions } from "./backfill";
+import { join } from "path";
 import type { MemoryJob } from "./memory-queue";
 
 const cli = new MemsearchCLI();
 
-// Track last indexing time for rate limiting
-let lastIndexTime = 0;
-const MIN_INDEX_INTERVAL_MS = 60 * 1000; // 1 minute between indexing jobs
+const INDEX_TIMEOUT_MS = 60000;
 
 export interface ProcessResult {
 	success: boolean;
@@ -18,8 +17,6 @@ export interface ProcessResult {
 
 export async function processMemoryJob(job: MemoryJob): Promise<ProcessResult> {
 	switch (job.type) {
-		case "generate-markdown":
-			return processGenerateMarkdown(job);
 		case "session-created":
 			return processSessionCreated(job);
 		case "session-idle":
@@ -38,87 +35,8 @@ export async function processMemoryJob(job: MemoryJob): Promise<ProcessResult> {
 	}
 }
 
-async function processGenerateMarkdown(job: MemoryJob): Promise<ProcessResult> {
-	const { sessionId, projectId, directory, data } = job;
-
-	try {
-		// Fast: Just ensure markdown file exists
-		// (In real implementation, this would fetch from SQLite and write markdown)
-		// For now, we'll just queue the indexing job
-		
-		// Calculate delay based on recency for indexing
-		const now = Date.now();
-		const timeUpdated = data?.timeUpdated || now;
-		const ageMs = now - timeUpdated;
-		const ageHours = ageMs / (1000 * 60 * 60);
-		
-		let delay = MIN_INDEX_INTERVAL_MS; // Default 1 minute
-		if (ageHours < 1) {
-			delay = 0; // Immediate for very recent
-		} else if (ageHours < 24) {
-			delay = 5000; // 5 seconds for today
-		} else if (ageHours < 24 * 7) {
-			delay = 30000; // 30 seconds for this week
-		}
-		
-		// Queue indexing job with calculated delay
-		const { queue } = await import("./memory-queue");
-		await queue.add(
-			`memory-session-created`,
-			{
-				type: "session-created",
-				sessionId,
-				projectId,
-				directory,
-				timestamp: Date.now(),
-				priority: data?.priority ?? 0,
-				dedupKey: `${projectId}:${sessionId}:session-created`,
-				data,
-			},
-			{
-				delay,
-				priority: data?.priority ?? 0,
-				deduplication: {
-					id: `${projectId}:${sessionId}:session-created`,
-					ttl: 60000,
-					replace: true,
-				},
-			}
-		);
-
-		return { success: true, data: { queued: true, indexDelay: delay } };
-	} catch (err) {
-		return { success: false, error: String(err) };
-	}
-}
-
 async function processSessionCreated(job: MemoryJob): Promise<ProcessResult> {
 	const { directory, sessionId, projectId } = job;
-
-	// Rate limiting: ensure at least 1 minute between indexing jobs
-	const now = Date.now();
-	const timeSinceLastIndex = now - lastIndexTime;
-
-	if (timeSinceLastIndex < MIN_INDEX_INTERVAL_MS) {
-		const delayNeeded = MIN_INDEX_INTERVAL_MS - timeSinceLastIndex;
-		console.log(
-			`[memsearch] Rate limiting: delaying ${sessionId} by ${delayNeeded}ms`
-		);
-
-		// Re-queue with delay
-		const { queue } = await import("./memory-queue");
-		await queue.add(`memory-session-created-delayed`, job, {
-			delay: delayNeeded,
-			priority: job.priority ?? 0,
-		});
-
-		return {
-			success: true,
-			data: { rateLimited: true, retryIn: delayNeeded },
-		};
-	}
-
-	lastIndexTime = now;
 
 	const isAvailable = await cli.checkAvailability();
 	if (!isAvailable) {
@@ -130,15 +48,26 @@ async function processSessionCreated(job: MemoryJob): Promise<ProcessResult> {
 		(async () => {
 			try {
 				await cli.watch(directory);
-			} catch (err) {
+			} catch {
 				state.watcherRunning = false;
 			}
 		})();
 	}
 
-	console.log(`[memsearch] ${projectId}: Indexed session ${sessionId}`);
-	markSessionProcessed(sessionId);
-	return { success: true, data: { indexed: true } };
+	try {
+		const sessionsDir = join(directory, ".memsearch", "sessions");
+		await cli.index(sessionsDir, { timeout: INDEX_TIMEOUT_MS });
+		markSessionProcessed(sessionId);
+		return { success: true, data: { indexed: true } };
+	} catch (err) {
+		if (err instanceof MemsearchTimeoutError) {
+			return {
+				success: false,
+				error: `Indexing timed out after ${INDEX_TIMEOUT_MS / 1000}s - Ollama may be unresponsive`,
+			};
+		}
+		return { success: false, error: String(err) };
+	}
 }
 
 async function processSessionIdle(job: MemoryJob): Promise<ProcessResult> {
@@ -166,17 +95,73 @@ async function processSessionDeleted(job: MemoryJob): Promise<ProcessResult> {
 }
 
 async function processManualIndex(job: MemoryJob): Promise<ProcessResult> {
-	const { directory, data } = job;
+	const { directory, data, projectId } = job;
+	if (projectId === "discovery" && !directory) {
+		return discoverAndQueueProjects();
+	}
+
+	const indexPath = data?.directory || directory;
+	if (!indexPath) {
+		return { success: false, error: "No directory specified for indexing" };
+	}
 
 	try {
-		await cli.index(directory, {
+		await cli.index(indexPath, {
 			recursive: data?.recursive ?? true,
 			collection: data?.collection,
+			timeout: INDEX_TIMEOUT_MS,
 		} as any);
-
 		return { success: true, data: { indexed: true, manual: true } };
 	} catch (err) {
+		if (err instanceof MemsearchTimeoutError) {
+			return {
+				success: false,
+				error: `Indexing timed out after ${INDEX_TIMEOUT_MS / 1000}s - Ollama may be unresponsive`,
+			};
+		}
 		return { success: false, error: String(err) };
+	}
+}
+
+async function discoverAndQueueProjects(): Promise<ProcessResult> {
+	const { readdirSync, existsSync } = await import("fs");
+	const { join } = await import("path");
+	const { signalSessionActivity } = await import("./memory-queue");
+
+	const baseDir = process.env.HOME || "";
+	const workspaceDir = join(baseDir, "workspace");
+	let queued = 0;
+
+	try {
+		for (const entry of readdirSync(workspaceDir, { withFileTypes: true })) {
+			if (entry.isDirectory()) {
+				const sessionsDir = join(workspaceDir, entry.name, ".memsearch", "sessions");
+				if (existsSync(sessionsDir)) {
+					const files = readdirSync(sessionsDir);
+					if (files.some((f) => f.endsWith(".md"))) {
+						const projectDir = join(workspaceDir, entry.name);
+						await signalSessionActivity(
+							"manual-index",
+							`index-${entry.name}-${Date.now()}`,
+							entry.name,
+							projectDir,
+							{ directory: sessionsDir, recursive: true }
+						);
+						queued++;
+					}
+				}
+			}
+		}
+
+		return {
+			success: true,
+			data: { discovered: true, projectsQueued: queued },
+		};
+	} catch (err) {
+		return {
+			success: false,
+			error: `Discovery failed: ${err}`,
+		};
 	}
 }
 

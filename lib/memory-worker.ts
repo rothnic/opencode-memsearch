@@ -3,36 +3,33 @@ import { processMemoryJob } from "./memory-pipeline";
 import { type MemoryJob, queue } from "./memory-queue";
 import {
 	incrementCompleted,
-	incrementDeferred,
 	incrementFailed,
-	isProjectProcessing,
-	markProjectProcessing,
-	unmarkProjectProcessing,
 } from "./queue-state";
 
 const concurrency = parseInt(process.env.MEMSEARCH_CONCURRENCY || "1", 10);
+const STALL_TIMEOUT_MS = 120000;
+
+const processingProjects = new Set<string>();
 
 const worker = new Worker(
 	"memsearch-memory",
 	async (job: { id: string; name: string; data: MemoryJob }) => {
 		const jobData = job.data;
+		const { projectId } = jobData;
 
-		if (isProjectProcessing(jobData.projectId)) {
+		if (processingProjects.has(projectId)) {
 			await queue.add(job.name, jobData, {
-				delay: 10000,
-				priority: jobData.priority,
+				priority: Math.max(1, (jobData.priority || 10) - 5),
 				deduplication: {
 					id: jobData.dedupKey,
 					ttl: 60000,
 					replace: true,
 				},
 			});
-
-			incrementDeferred();
-			return { deferred: true, reason: "project-busy" };
+			return { deferred: true, reason: "project-busy", requeued: true };
 		}
 
-		markProjectProcessing(jobData.projectId);
+		processingProjects.add(projectId);
 
 		try {
 			const result = await processMemoryJob(jobData);
@@ -44,13 +41,19 @@ const worker = new Worker(
 			}
 
 			return result;
+		} catch (error) {
+			incrementFailed();
+			return { success: false, error: String(error) };
 		} finally {
-			unmarkProjectProcessing(jobData.projectId);
+			processingProjects.delete(projectId);
 		}
 	},
 	{
 		embedded: true,
 		concurrency,
+		useLocks: true,
+		lockDuration: STALL_TIMEOUT_MS,
+		maxStalledCount: 2,
 	},
 );
 
@@ -58,6 +61,25 @@ worker.on("failed", () => {
 	incrementFailed();
 });
 
+worker.on("error", () => {});
+
+worker.on("stalled", (jobId: string) => {
+	console.error(`Job ${jobId} stalled after ${STALL_TIMEOUT_MS}ms`);
+});
+
+const heartbeat = setInterval(() => {}, 30000);
+
+process.on("SIGINT", () => {
+	clearInterval(heartbeat);
+	worker.close().then(() => process.exit(0));
+});
+
+process.on("SIGTERM", () => {
+	clearInterval(heartbeat);
+	worker.close().then(() => process.exit(0));
+});
+
 export function shutdownWorker() {
+	clearInterval(heartbeat);
 	return worker.close();
 }

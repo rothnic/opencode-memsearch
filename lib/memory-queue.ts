@@ -3,6 +3,7 @@ import { mkdirSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import { checkForUnprocessedSessions } from "./backfill";
+import { cleanupOldState } from "../state";
 
 const queueDataDir = join(
 	homedir(),
@@ -16,7 +17,6 @@ process.env.DATA_PATH = join(queueDataDir, "memory.db");
 
 export interface MemoryJob {
 	type:
-		| "generate-markdown"
 		| "session-created"
 		| "session-idle"
 		| "session-deleted"
@@ -36,8 +36,8 @@ export const queue = new Queue<MemoryJob>("memsearch-memory", {
 	defaultJobOptions: {
 		attempts: 3,
 		backoff: 5000,
-		removeOnComplete: 100,
-		removeOnFail: 50,
+		removeOnComplete: 10,
+		removeOnFail: 5,
 	},
 });
 
@@ -49,6 +49,11 @@ export async function signalSessionActivity(
 	data?: any,
 ) {
 	const dedupKey = `${projectId}:${sessionId}:${type}`;
+	// Priority: lower number = higher priority in bunqueue
+	// Real-time events (session-created): priority 10
+	// Manual index: priority 20
+	// Backfill: priority 50+ (lowest)
+	const priority = data?.priority ?? (type === "backfill" ? 50 : type === "manual-index" ? 20 : 10);
 
 	await queue.add(
 		`memory-${type}`,
@@ -58,12 +63,12 @@ export async function signalSessionActivity(
 			projectId,
 			directory,
 			timestamp: Date.now(),
-			priority: type === "manual-index" ? 10 : 0,
+			priority,
 			dedupKey,
 			data,
 		},
 		{
-			priority: type === "manual-index" ? 10 : 0,
+			priority,
 			deduplication: {
 				id: dedupKey,
 				ttl: 60000,
@@ -83,10 +88,11 @@ export async function setupRecurringJobs(): Promise<void> {
 	recurringJobsSetup = true;
 
 	try {
+		// Schedule backfill every 6 hours (generates markdown for new sessions)
 		await queue.upsertJobScheduler(
 			"backfill-check",
 			{
-				every: 6 * 60 * 60 * 1000,
+				every: 6 * 60 * 60 * 1000, // 6 hours
 			},
 			{
 				name: "backfill-check",
@@ -105,8 +111,34 @@ export async function setupRecurringJobs(): Promise<void> {
 			},
 		);
 
-		console.log("[queue] Set up 6-hour recurring backfill job");
-	} catch (err) {
-		console.error("[queue] Failed to set up recurring jobs:", err);
+		// Schedule indexing discovery every hour (queues projects for indexing)
+		await queue.upsertJobScheduler(
+			"index-discovery",
+			{
+				every: 60 * 60 * 1000, // 1 hour
+			},
+			{
+				name: "index-discovery",
+				data: {
+					type: "manual-index",
+					sessionId: "index-discovery",
+					projectId: "discovery",
+					directory: "",
+					timestamp: Date.now(),
+					priority: 10,
+					dedupKey: "index-discovery",
+				} as MemoryJob,
+				opts: {
+					priority: 10,
+				},
+			},
+		);
+
+		// Schedule state cleanup every hour to prevent memory leaks
+		setInterval(() => {
+			cleanupOldState();
+		}, 60 * 60 * 1000); // 1 hour
+	} catch {
+		// Silent fail
 	}
 }

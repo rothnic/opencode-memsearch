@@ -8,7 +8,7 @@ import {
 	mergeWithLegacyConfig,
 } from "./lib/config-yaml";
 import { loadMemoryTypes } from "./lib/memory-type-config-loader";
-import type { MemorySource, MemsearchConfig, SmartSearchConfig } from "./types";
+import type { MemorySource, MemsearchConfig, SmartSearchConfig, FeatureFlags } from "./types";
 
 /**
  * Migration warning details for legacy config users
@@ -79,6 +79,30 @@ const ConfigSchema = z.object({
 	embeddingTimeoutMs: z.number().int().positive().optional().default(10000),
 	sources: z.array(MemorySourceSchema).optional(),
 	defaultSource: MemorySourceSchema.optional(),
+	featureFlags: z
+		.object({
+			enableBackfill: z.boolean().optional().default(true),
+			enableSessionIdleSummarization: z.boolean().optional().default(false),
+			enableSystemTransform: z.boolean().optional().default(true),
+			enableRecurringJobs: z.boolean().optional().default(true),
+			enableAsyncIndexing: z.boolean().optional().default(true),
+			maxQueueRetention: z.number().int().positive().optional().default(10),
+			maxFailedRetention: z.number().int().positive().optional().default(5),
+			minIndexIntervalSeconds: z.number().int().positive().optional().default(60),
+			searchCacheTtlMs: z.number().int().positive().optional().default(120000),
+		})
+		.optional()
+		.default({
+			enableBackfill: true,
+			enableSessionIdleSummarization: false,
+			enableSystemTransform: true,
+			enableRecurringJobs: true,
+			enableAsyncIndexing: true,
+			maxQueueRetention: 10,
+			maxFailedRetention: 5,
+			minIndexIntervalSeconds: 60,
+			searchCacheTtlMs: 120000,
+		}),
 	// Use object().catchall(...) instead of z.record(...) to avoid signature
 	// mismatches across Zod versions while enforcing value types.
 	extras: z

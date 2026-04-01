@@ -1,2 +1,18 @@
 [embedding]
 provider = "ollama"
+model = "embeddinggemma"
+host = "http://100.79.168.98:11434"
+batch_size = 25
+
+[compact]
+llm_provider = "openai"
+llm_model = "free"
+
+[llm]
+provider = "openai"
+base_url = "https://9router.on.nickroth.com/v1"
+api_key = "sk-e2212862f143de76-0pqqrt-7b50d6ac"
+model = "free"
+
+[extraction]
+default_model = "openai/free"

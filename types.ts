@@ -68,6 +68,28 @@ export interface SmartSearchConfig {
 	queryExpansion?: boolean;
 }
 
+/** Feature flags to control performance-sensitive operations */
+export interface FeatureFlags {
+	/** Enable automatic backfill on first session. Default: true */
+	enableBackfill?: boolean;
+	/** Enable session idle summarization (expensive LLM calls). Default: false */
+	enableSessionIdleSummarization?: boolean;
+	/** Enable system transform (search injection). Default: true */
+	enableSystemTransform?: boolean;
+	/** Enable recurring backfill jobs. Default: true */
+	enableRecurringJobs?: boolean;
+	/** Enable async/debounced indexing. Default: true */
+	enableAsyncIndexing?: boolean;
+	/** Max completed jobs to retain in queue. Default: 10 */
+	maxQueueRetention?: number;
+	/** Max failed jobs to retain in queue. Default: 5 */
+	maxFailedRetention?: number;
+	/** Minimum seconds between indexing calls per session. Default: 60 */
+	minIndexIntervalSeconds?: number;
+	/** Cache TTL for search results in milliseconds. Default: 120000 (2 min) */
+	searchCacheTtlMs?: number;
+}
+
 /** Fine-grained search options passed at query time */
 export interface SearchOptions {
 	/** How many results to return */
@@ -110,6 +132,8 @@ export interface MemsearchConfig {
 	sources?: MemorySource[];
 	/** Default source for backward compatibility */
 	defaultSource?: MemorySource;
+	/** Feature flags for controlling performance-sensitive operations */
+	featureFlags?: FeatureFlags;
 	/** Additional plugin-specific options */
 	extras?: Record<string, string | number | boolean>;
 }

@@ -1,0 +1,11 @@
+version: 1
+
+extraction:
+  defaultModel: "openai/free"
+  timeout: 60
+  maxRetries: 2
+  autoExtract: true
+
+defaults:
+  model: "openai/free"
+  maxTokens: 2000
