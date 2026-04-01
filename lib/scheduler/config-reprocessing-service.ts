@@ -89,7 +89,7 @@ export class ConfigReprocessingService {
         `[Reprocessor] Found ${rows.length} sessions to process for ${memoryType}`
       );
 
-      const { signalSessionActivity } = await import("./memory-queue");
+      const { signalSessionActivity } = await import("../queue/memory-queue");
       let queued = 0;
       let skipped = 0;
 

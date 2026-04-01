@@ -5,7 +5,7 @@
  *              Generates Milvus-compatible filter expressions with type-safe field names.
  */
 
-import type { MemsearchYamlConfig } from "./config-yaml.js";
+import type { MemsearchYamlConfig } from "../types/config-yaml.js";
 
 /**
  * Error codes for filter builder operations

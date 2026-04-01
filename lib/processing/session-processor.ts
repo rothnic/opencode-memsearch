@@ -4,7 +4,7 @@
  * analyzing sessions and extracting typed memories. Implementations in Tasks 12-15.
  */
 
-import type { MemoryTypeConfig } from "./memory-type-config";
+import type { MemoryTypeConfig } from "../types/memory-type-config";
 import type { SessionWithHistory } from "./session-indexer";
 
 export interface MemoryExtractMetadata {

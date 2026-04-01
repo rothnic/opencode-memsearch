@@ -10,13 +10,13 @@ import type {
 	SessionProcessorInput,
 	SessionProcessorResult,
 } from "./session-processor";
-import { buildPromptForTypes, toPromptMemoryType } from "./prompt-builder";
+import { buildPromptForTypes, toPromptMemoryType } from "../llm/prompt-builder";
 import {
 	createLLMClient,
 	LLMError,
 	parseJsonFromLLMOutput,
-} from "./llm-client";
-import type { MemoryTypeConfig } from "./memory-type-config";
+} from "../llm/llm-client";
+import type { MemoryTypeConfig } from "../types/memory-type-config";
 import { mkdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";

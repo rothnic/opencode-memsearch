@@ -7,9 +7,9 @@
 import Database from "bun:sqlite";
 import { join } from "path";
 import { homedir } from "os";
-import type { MemoryTypeConfig } from "./memory-type-config";
-import { createMemoryTypeRegistry } from "./memory-types";
-import { loadSessionMetadataFromDB, loadMessagesFromDB } from "./session-indexer";
+import type { MemoryTypeConfig } from "../types/memory-type-config";
+import { createMemoryTypeRegistry } from "../types/memory-types";
+import { loadSessionMetadataFromDB, loadMessagesFromDB } from "../processing/session-indexer";
 
 const OPENCODE_DB_PATH = join(homedir(), ".local", "share", "opencode", "opencode.db");
 const LAST_RUN_TRACKER_FILE = join(homedir(), ".config", "opencode", "memsearch", ".scheduler-last-run");
@@ -201,7 +201,7 @@ export class MemoryExtractionScheduler {
    * Check current queue depth
    */
   async getQueueDepth(): Promise<number> {
-    const { queue } = await import("./memory-queue");
+    const { queue } = await import("../queue/memory-queue");
     // Note: bunqueue doesn't expose getJobCounts easily, so we check DB directly
     const queueDbPath = join(homedir(), ".config", "opencode", "memsearch", "queue", "memory.db");
     const queueDb = new Database(queueDbPath, { readonly: true });
@@ -251,7 +251,7 @@ export class MemoryExtractionScheduler {
     let queued = 0;
     let skipped = 0;
     
-    const { signalSessionActivity } = await import("./memory-queue");
+    const { signalSessionActivity } = await import("../queue/memory-queue");
     
     for (const session of sessions.slice(0, maxToQueue)) {
       try {

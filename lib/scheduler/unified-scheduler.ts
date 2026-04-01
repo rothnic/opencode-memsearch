@@ -4,8 +4,8 @@ import { homedir } from "os";
 import { readdirSync, existsSync, statSync, mkdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import type { MemoryTypeConfig } from "./memory-type-config";
-import { createMemoryTypeRegistry } from "./memory-types";
+import type { MemoryTypeConfig } from "../types/memory-type-config";
+import { createMemoryTypeRegistry } from "../types/memory-types";
 
 const OPENCODE_DB_PATH = join(homedir(), ".local", "share", "opencode", "opencode.db");
 const TRACKER_DB_PATH = join(homedir(), ".config", "opencode", "memsearch", "scheduler-tracker.db");
@@ -192,7 +192,7 @@ export class UnifiedMemoryScheduler {
 
     console.log(`[Scheduler] Found ${sessionFiles.size} session files, ${configFiles.size} configs`);
 
-    const { signalSessionActivity } = await import("./memory-queue");
+    const { signalSessionActivity } = await import("../queue/memory-queue");
     let sessionsQueued = 0;
     const configsChanged: string[] = [];
     const sessionsChanged: string[] = [];

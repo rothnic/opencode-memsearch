@@ -1,5 +1,5 @@
 import type { PluginInput } from "@opencode-ai/plugin";
-import { signalSessionActivity } from "../lib/memory-queue";
+import { signalSessionActivity } from "../lib/queue/memory-queue";
 import { isThrottled, type SessionInfo, shouldSkipSession } from "../state";
 
 export const onSessionCreated = async (event: any, ctx: PluginInput) => {

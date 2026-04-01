@@ -3,7 +3,7 @@ import { mkdirSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import { checkForUnprocessedSessions } from "./backfill";
-import { cleanupOldState } from "../state";
+import { cleanupOldState } from "../../state";
 
 const queueDataDir = join(
 	homedir(),

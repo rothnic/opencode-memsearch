@@ -1,5 +1,5 @@
 import { Worker } from "bunqueue/client";
-import { processMemoryJob } from "./memory-pipeline";
+import { processMemoryJob } from "../processing/memory-pipeline";
 import { type MemoryJob, queue } from "./memory-queue";
 import {
 	incrementCompleted,

@@ -389,7 +389,7 @@ export async function indexSessions(
 
 		// Trigger memsearch CLI to index the sessions directory
 		try {
-			const { MemsearchCLI } = await import("../cli-wrapper");
+			const { MemsearchCLI } = await import("../../cli-wrapper");
 			const cli = new MemsearchCLI($);
 			// memsearch index doesn't support --recursive in v0.1.8; call without it.
 			await cli.index(outputDir, { collection: "sessions" });

@@ -1,7 +1,7 @@
 import Database from "bun:sqlite";
 import { $ } from "bun";
 import { join } from "path";
-import { generateSessionMarkdown } from "./session-generator";
+import { generateSessionMarkdown } from "../processing/session-generator";
 
 interface SessionInfo {
 	id: string;

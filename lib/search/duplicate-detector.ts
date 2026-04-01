@@ -7,7 +7,7 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import path from "path";
-import type { DeduplicationConfig } from "./config-yaml";
+import type { DeduplicationConfig } from "../types/config-yaml";
 
 // ============================================
 // Types

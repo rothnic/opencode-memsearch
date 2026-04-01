@@ -1,9 +1,9 @@
-import { MemsearchCLI, MemsearchTimeoutError } from "../cli-wrapper";
-import { loadConfig } from "../config";
-import { markSessionProcessed, state } from "../state";
-import { checkForUnprocessedSessions } from "./backfill";
+import { MemsearchCLI, MemsearchTimeoutError } from "../../cli-wrapper";
+import { loadConfig } from "../../config";
+import { markSessionProcessed, state } from "../../state";
+import { checkForUnprocessedSessions } from "../queue/backfill";
 import { join } from "path";
-import type { MemoryJob } from "./memory-queue";
+import { type MemoryJob } from "../queue/memory-queue";
 
 const cli = new MemsearchCLI();
 
@@ -126,7 +126,7 @@ async function processManualIndex(job: MemoryJob): Promise<ProcessResult> {
 async function discoverAndQueueProjects(): Promise<ProcessResult> {
 	const { readdirSync, existsSync } = await import("fs");
 	const { join } = await import("path");
-	const { signalSessionActivity } = await import("./memory-queue");
+	const { signalSessionActivity } = await import("../queue/memory-queue");
 
 	const baseDir = process.env.HOME || "";
 	const workspaceDir = join(baseDir, "workspace");
