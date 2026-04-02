@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { createConfigMonitor } from "../lib/memory-config-monitor";
+import { createConfigMonitor } from "../src/scheduler/memory-config-monitor";
 
 const MEMORY_DIR = "/Users/nroth/workspace/opencode-memsearch/memory";
 

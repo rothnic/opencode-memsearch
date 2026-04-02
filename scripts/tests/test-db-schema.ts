@@ -17,7 +17,7 @@ try {
   // Get message table schema
   const schema = db.query("PRAGMA table_info(message)").all();
   console.log("Message table columns:\n");
-  for (const col of schema) {
+  for (const col of schema as Array<{name: string; type: string}>) {
     console.log(`  ${col.name} (${col.type})`);
   }
   

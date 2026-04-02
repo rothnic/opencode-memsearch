@@ -1,5 +1,5 @@
 import { $ } from "bun";
-import { MemsearchCLI } from "../cli-wrapper";
+import { MemsearchCLI } from "../../src/cli-wrapper";
 
 console.log("🔍 Debugging Memsearch Integration\n");
 console.log("=".repeat(70));

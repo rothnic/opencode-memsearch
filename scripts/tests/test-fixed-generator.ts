@@ -1,4 +1,4 @@
-import { generateSessionMarkdown } from "../lib/processing/session-generator";
+import { generateSessionMarkdown } from "../../src/processing/session-generator";
 import { readFileSync } from "fs";
 
 const sessionId = "ses_365b95080ffeKGFkQC650LG1px";

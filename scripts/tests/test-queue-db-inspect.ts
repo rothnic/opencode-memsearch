@@ -18,7 +18,7 @@ try {
   // List all tables
   console.log("\n📋 Tables in database:\n");
   const tables = db.query("SELECT name FROM sqlite_master WHERE type='table'").all();
-  for (const table of tables) {
+  for (const table of tables as Array<{name: string}>) {
     console.log(`  - ${table.name}`);
   }
   
@@ -35,7 +35,7 @@ try {
       // Sample data
       const sample = db.query(`SELECT * FROM ${tableName} LIMIT 1`).all();
       if (sample.length > 0) {
-        console.log("  Sample data keys:", Object.keys(sample[0]).join(", "));
+        console.log("  Sample data keys:", Object.keys(sample[0] as object).join(", "));
       }
     } catch (err) {
       // Table doesn't exist

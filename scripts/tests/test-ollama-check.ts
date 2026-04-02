@@ -39,7 +39,7 @@ try {
   // Check if we can reach the Ollama API
   const response = await fetch("http://localhost:11434/api/tags");
   if (response.ok) {
-    const data = await response.json();
+    const data = await response.json() as {models?: Array<{name: string}>};
     console.log(`   ✅ Ollama API is responding`);
     console.log(`   Models: ${data.models?.map((m: any) => m.name).join(', ') || 'none'}`);
   } else {

@@ -11,3 +11,10 @@ pre-push:
   commands:
     test:
       run: bun run test --run
+
+# Block commits to main if tests fail
+# Run tests before any commit to main
+commit-msg:
+  scripts:
+    "check_main_branch.sh":
+      runner: bash

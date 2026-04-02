@@ -1,5 +1,5 @@
-import { processMemoryJob } from "../lib/processing/memory-pipeline";
-import type { MemoryJob } from "../lib/queue/memory-queue";
+import { processMemoryJob } from "../../src/processing/memory-pipeline";
+import type { MemoryJob } from "../../src/queue/memory-queue";
 
 console.log("🔍 Tracing Job Processing\n");
 console.log("=".repeat(70));

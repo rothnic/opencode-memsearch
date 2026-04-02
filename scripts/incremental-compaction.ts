@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { MemsearchCLI, MemsearchTimeoutError } from "../lib/cli-wrapper";
+import { MemsearchCLI, MemsearchTimeoutError } from "../src/cli-wrapper";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 

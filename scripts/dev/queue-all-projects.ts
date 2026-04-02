@@ -1,4 +1,4 @@
-import { signalSessionActivity } from "../lib/queue/memory-queue";
+import { signalSessionActivity } from "../../src/queue/memory-queue";
 import { readdirSync } from "fs";
 import { join } from "path";
 

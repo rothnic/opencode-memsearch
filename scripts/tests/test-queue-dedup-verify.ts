@@ -1,4 +1,4 @@
-import { queue, signalSessionActivity } from "../lib/queue/memory-queue";
+import { queue, signalSessionActivity } from "../../src/queue/memory-queue";
 
 async function testDedup() {
   const before = await queue.getWaitingCount();

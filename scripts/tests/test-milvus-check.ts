@@ -9,6 +9,11 @@ try {
   const conn = await Bun.connect({
     hostname: "agentmemory-milvus.on.nickroth.com",
     port: 19530,
+    socket: {
+      data() {},
+      close() {},
+      drain() {},
+    },
   });
   
   console.log("   ✅ TCP connection successful");
@@ -35,3 +40,5 @@ console.log("\n📋 Analysis:\n");
 console.log("   If Milvus is not accessible, memsearch will hang");
 console.log("   trying to connect when indexing.");
 console.log("\n" + "=".repeat(70) + "\n");
+
+export {};

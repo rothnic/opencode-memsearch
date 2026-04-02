@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { createScheduler } from "../lib/memory-extraction-scheduler";
+import { createScheduler } from "../src/scheduler/memory-extraction-scheduler";
 
 const WORKDIR = "/Users/nroth/workspace/opencode-memsearch";
 

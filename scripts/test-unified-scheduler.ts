@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { createUnifiedScheduler } from "../lib/unified-scheduler";
+import { createUnifiedScheduler } from "../src/scheduler/unified-scheduler";
 
 const WORKDIR = "/Users/nroth/workspace/opencode-memsearch";
 

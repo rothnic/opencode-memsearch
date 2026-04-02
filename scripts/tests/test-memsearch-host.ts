@@ -18,7 +18,7 @@ try {
     signal: AbortSignal.timeout(5000) 
   });
   if (response.ok) {
-    const data = await response.json();
+    const data = await response.json() as {models?: Array<{name: string}>};
     console.log(`   ✅ Host is responding`);
     console.log(`   Models: ${data.models?.length || 0} available`);
   } else {
@@ -35,7 +35,7 @@ try {
     signal: AbortSignal.timeout(5000) 
   });
   if (response.ok) {
-    const data = await response.json();
+    const data = await response.json() as {models?: Array<{name: string}>};
     console.log(`   ✅ Localhost is responding`);
     console.log(`   Models: ${data.models?.map((m: any) => m.name).join(', ')}`);
   } else {
@@ -50,7 +50,7 @@ console.log("\n4. Checking Model Availability:\n");
 try {
   const response = await fetch("http://localhost:11434/api/tags");
   if (response.ok) {
-    const data = await response.json();
+    const data = await response.json() as {models?: Array<{name: string}>};
     const hasEmbeddingGemma = data.models?.some((m: any) => m.name.includes('embeddinggemma'));
     const hasNomic = data.models?.some((m: any) => m.name.includes('nomic-embed-text'));
     

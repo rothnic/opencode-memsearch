@@ -31,11 +31,17 @@ ls:
     .tsx: kebabcase
     .js: kebabcase
     
+    # Files without extension should NOT be at root
+    .: kebabcase
+    
     # Directories (kebab-case)
     src: kebabcase
     docs: kebabcase
     scripts: kebabcase
     config: kebabcase
+    
+    # All directories must be kebab-case
+    .dir: kebabcase
   
   # SUBDIRECTORY RULES
   src:

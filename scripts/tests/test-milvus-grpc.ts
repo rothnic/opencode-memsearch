@@ -12,6 +12,11 @@ try {
   const socket = await Bun.connect({
     hostname: MILVUS_HOST,
     port: MILVUS_PORT,
+    socket: {
+      data() {},
+      close() {},
+      drain() {},
+    },
   });
   console.log("   ✅ TCP connection successful");
   socket.end();
@@ -53,3 +58,5 @@ console.log("   If TCP connection works but memsearch hangs,");
 console.log("   the issue is likely gRPC protocol compatibility");
 console.log("   or Milvus authentication/authorization.");
 console.log("\n" + "=".repeat(70) + "\n");
+
+export {};

@@ -1,5 +1,5 @@
 import path from "path";
-import { indexSessions } from "../lib/session-indexer";
+import { indexSessions } from "../src/processing/session-indexer";
 
 async function main() {
 	const projectPath = process.cwd();

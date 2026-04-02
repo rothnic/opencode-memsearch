@@ -4,9 +4,9 @@
  * with rate limiting to avoid overwhelming resources
  */
 
-import { SimpleSessionProcessorAgent } from "../lib/session-processor-agent";
-import { createMemoryTypeRegistry } from "../lib/memory-types";
-import { loadSessionMetadataFromDB, loadMessagesFromDB } from "../lib/session-indexer";
+import { SimpleSessionProcessorAgent } from "../src/processing/session-processor-agent";
+import { createMemoryTypeRegistry } from "../src/types/memory-types";
+import { loadSessionMetadataFromDB, loadMessagesFromDB } from "../src/processing/session-indexer";
 import Database from "bun:sqlite";
 import path from "path";
 import os from "os";

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
-import { createScheduler } from "../lib/memory-extraction-scheduler";
-import { createConfigMonitor } from "../lib/memory-config-monitor";
-import { createReprocessingService } from "../lib/config-reprocessing-service";
+import { createScheduler } from "../src/scheduler/memory-extraction-scheduler";
+import { createConfigMonitor } from "../src/scheduler/memory-config-monitor";
+import { createReprocessingService } from "../src/scheduler/config-reprocessing-service";
 
 const WORKDIR = "/Users/nroth/workspace/opencode-memsearch";
 const MEMORY_DIR = `${WORKDIR}/memory`;

@@ -3,10 +3,10 @@
  * @description Isolated test for the queue system - tests without OpenCode running
  */
 
-import { queue, signalSessionActivity, type MemoryJob } from "../lib/queue/memory-queue";
-import { processMemoryJob } from "../lib/processing/memory-pipeline";
-import { backfillAllSessions } from "../lib/queue/backfill";
-import { generateSessionMarkdown } from "../lib/processing/session-generator";
+import { queue, signalSessionActivity, type MemoryJob } from "../../src/queue/memory-queue";
+import { processMemoryJob } from "../../src/processing/memory-pipeline";
+import { backfillAllSessions } from "../../src/queue/backfill";
+import { generateSessionMarkdown } from "../../src/processing/session-generator";
 
 // Test configuration
 const TEST_PROJECT_ID = "test-project";
