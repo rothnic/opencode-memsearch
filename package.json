@@ -23,6 +23,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "prepublishOnly": "npm run typecheck",
+    "test": "bun test",
     "test:e2e": "bun test ../../../tests/e2e",
     "prepare": "lefthook install"
   },
