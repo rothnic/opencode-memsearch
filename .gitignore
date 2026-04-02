@@ -32,6 +32,10 @@ bun.lockb
 # Package artifacts
 packages/*/node_modules/
 
-# memsearch
+# memsearch - local config files (examples are tracked)
 .memsearch/
 .memsearch.toml
+.memsearch.yaml
+
+# Secret scanning baseline (if using detect-secrets)
+.secrets.baseline

@@ -13,9 +13,19 @@ pre-push:
   commands:
     test:
       run: bun run test --run
+    # Scan entire repo for secrets before pushing
+    full-secret-scan:
+      run: |
+        echo "🔍 Running full repository secret scan..."
+        if command -v detect-secrets &> /dev/null; then
+          detect-secrets scan --all-files --force-use-all-plugins . || exit 1
+        elif command -v trufflehog &> /dev/null; then
+          trufflehog git file://. --since-commit HEAD~10 --fail || exit 1
+        else
+          echo "⚠️  Secret scanning tools not installed. Install detect-secrets: pip install detect-secrets"
+        fi
 
 # Block commits to main if tests fail
-# Run tests before any commit to main
 commit-msg:
   scripts:
     "check_main_branch.sh":
