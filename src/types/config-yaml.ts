@@ -237,48 +237,85 @@ function applyDefaults(config: MemsearchYamlConfig): MemsearchYamlConfig {
 // ============================================
 
 /**
- * Load and parse .memsearch.yaml from a directory.
- * Returns null if file doesn't exist.
+ * Load and parse memsearch config from .opencode/memsearch.yaml or .memsearch.yaml.
+ * Prefers .opencode/memsearch.yaml (new location) but falls back to .memsearch.yaml (legacy).
+ * @param workdir Project working directory
+ * @returns Parsed config or null if neither file exists
  */
 export function loadYamlConfig(workdir: string): MemsearchYamlConfig | null {
-	const configPath = path.join(workdir, ".memsearch.yaml");
+	// Try new location first: .opencode/memsearch.yaml
+	const opencodePath = path.join(workdir, ".opencode", "memsearch.yaml");
+	if (existsSync(opencodePath)) {
+		try {
+			const content = readFileSync(opencodePath, "utf8");
+			const raw = yaml.load(content);
 
-	if (!existsSync(configPath)) {
-		return null;
-	}
+			if (!raw || typeof raw !== "object") {
+				console.warn("memsearch: .opencode/memsearch.yaml is empty or invalid, ignoring");
+				return null;
+			}
 
-	try {
-		const content = readFileSync(configPath, "utf8");
-		const raw = yaml.load(content);
+			// Interpolate environment variables
+			const interpolated = interpolateObject(raw);
 
-		if (!raw || typeof raw !== "object") {
-			console.warn("memsearch: .memsearch.yaml is empty or invalid, ignoring");
+			// Validate and parse
+			const parsed = MemsearchYamlConfigSchema.parse(interpolated);
+			return applyDefaults(parsed);
+		} catch (err) {
+			console.error("memsearch: failed to load .opencode/memsearch.yaml:", err);
 			return null;
 		}
-
-		// Interpolate environment variables
-		const interpolated = interpolateObject(raw);
-
-		// Validate and parse
-		const parsed = MemsearchYamlConfigSchema.parse(interpolated);
-		return applyDefaults(parsed);
-	} catch (err) {
-		console.error("memsearch: failed to load .memsearch.yaml:", err);
-		return null;
 	}
+
+	// Fall back to legacy location: .memsearch.yaml
+	const legacyPath = path.join(workdir, ".memsearch.yaml");
+	if (existsSync(legacyPath)) {
+		console.warn("memsearch: Using legacy config at .memsearch.yaml. Consider moving to .opencode/memsearch.yaml");
+		try {
+			const content = readFileSync(legacyPath, "utf8");
+			const raw = yaml.load(content);
+
+			if (!raw || typeof raw !== "object") {
+				console.warn("memsearch: .memsearch.yaml is empty or invalid, ignoring");
+				return null;
+			}
+
+			// Interpolate environment variables
+			const interpolated = interpolateObject(raw);
+
+			// Validate and parse
+			const parsed = MemsearchYamlConfigSchema.parse(interpolated);
+			return applyDefaults(parsed);
+		} catch (err) {
+			console.error("memsearch: failed to load .memsearch.yaml:", err);
+			return null;
+		}
+	}
+
+	return null;
 }
 
 /**
- * Check if .memsearch.yaml exists in a directory.
+ * Check if memsearch config exists (.opencode/memsearch.yaml or legacy .memsearch.yaml).
+ * @param workdir Project working directory
+ * @returns true if either config file exists
  */
 export function hasYamlConfig(workdir: string): boolean {
-	return existsSync(path.join(workdir, ".memsearch.yaml"));
+	return existsSync(path.join(workdir, ".opencode", "memsearch.yaml")) ||
+		existsSync(path.join(workdir, ".memsearch.yaml"));
 }
 
 /**
- * Get the config file path that would be used.
+ * Get the path to the active memsearch config file (for display purposes).
+ * Prefers .opencode/memsearch.yaml if both exist.
+ * @param workdir Project working directory
+ * @returns Path to config file
  */
-export function getConfigPath(workdir: string): string {
+export function getYamlConfigPath(workdir: string): string {
+	const opencodePath = path.join(workdir, ".opencode", "memsearch.yaml");
+	if (existsSync(opencodePath)) {
+		return opencodePath;
+	}
 	return path.join(workdir, ".memsearch.yaml");
 }
 

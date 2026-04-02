@@ -1,0 +1,17 @@
+# OpenCode MemSearch Plugin Configuration
+# Copy this file to .opencode/memsearch.yaml and customize
+
+version: 1
+
+extraction:
+  defaultModel: "openai/free"
+  timeout: 60
+  maxRetries: 2
+  autoExtract: true
+
+defaults:
+  model: "openai/free"
+  maxTokens: 2000
+
+# Set your API key via environment variable:
+# export NINE_ROUTER_API_KEY="your-api-key-here"

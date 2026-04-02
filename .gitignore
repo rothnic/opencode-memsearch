@@ -23,7 +23,8 @@ dist/
 .vscode/
 
 # OpenCode
-.opencode/
+.opencode/*
+!.opencode/memsearch.yaml.example
 .sisyphus/
 
 # Bun
