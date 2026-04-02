@@ -11,7 +11,7 @@ llm_model = "free"
 [llm]
 provider = "openai"
 base_url = "https://9router.on.nickroth.com/v1"
-api_key = "sk-e2212862f143de76-0pqqrt-7b50d6ac"
+api_key = "sk-YOUR_API_KEY_HERE"
 model = "free"
 
 [extraction]

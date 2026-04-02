@@ -22,9 +22,9 @@ const CONFIG = {
   model: "openai/free",  // Use free model via 9router
   maxTokens: 1500,
   temperature: 0.3,
-  // 9router configuration
+  // 9router configuration - get API key from environment
   baseUrl: "https://9router.on.nickroth.com/v1",
-  apiKey: "sk-e88d4e8bc1f7c1ce-24w07n-4dd6dccf",
+  apiKey: process.env.NINE_ROUTER_API_KEY || "",
 };
 
 async function getRecentSessions(limit: number): Promise<string[]> {

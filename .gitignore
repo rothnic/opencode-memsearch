@@ -16,6 +16,7 @@ dist/
 *.log
 .env
 .env.*
+!.env.example
 
 # IDE
 .idea/
@@ -33,3 +34,4 @@ packages/*/node_modules/
 
 # memsearch
 .memsearch/
+.memsearch.toml
