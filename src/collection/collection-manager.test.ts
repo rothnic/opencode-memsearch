@@ -23,32 +23,55 @@ const isCollectionError = <T>(
 	return result.ok === false;
 };
 
+// Create a mock shell that returns proper thenable objects
 const createMockShell = (
 	responses: Record<
 		string,
 		{ stdout: string; stderr: string; exitCode: number }
 	>,
 ) => {
-	const mockFn = vi.fn(
-		(strings: TemplateStringsArray, ...values: unknown[]) => {
-			let key = "";
-			for (let i = 0; i < strings.length; i++) {
-				key += strings[i];
-				if (i < values.length) {
-					key += String(values[i]);
-				}
+	return vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => {
+		let key = "";
+		for (let i = 0; i < strings.length; i++) {
+			key += strings[i];
+			if (i < values.length) {
+				key += String(values[i]);
 			}
-			key = key.trim();
-			const response = responses[key] ?? {
-				stdout: "",
-				stderr: "",
-				exitCode: 0,
-			};
-			const result = { exitCode: response.exitCode, stderr: response.stderr };
-			return {
-				quiet: vi.fn().mockResolvedValue(result),
-				text: vi.fn().mockResolvedValue(response.stdout),
-				throws: vi.fn().mockImplementation(() => {
+		}
+		key = key.trim();
+		const response = responses[key] ?? {
+			stdout: "",
+			stderr: "",
+			exitCode: 0,
+		};
+
+		// Create the base result object
+		const baseResult = {
+			exitCode: response.exitCode,
+			stderr: response.stderr,
+			stdout: response.stdout,
+		};
+
+		// Create a thenable that resolves to baseResult when awaited
+		const createThenable = (resolveValue: { exitCode: number; stderr: string; stdout: string }) => {
+			const thenable = {
+				exitCode: resolveValue.exitCode,
+				stderr: resolveValue.stderr,
+				stdout: resolveValue.stdout,
+				then: (onFulfilled?: (value: typeof resolveValue) => unknown, onRejected?: (reason: Error) => unknown) => {
+					// If exit code is non-zero, reject the promise
+					if (resolveValue.exitCode !== 0) {
+						const error = new Error(resolveValue.stderr || `Command failed with exit code ${resolveValue.exitCode}`);
+						return Promise.reject(error).catch(onRejected);
+					}
+					return Promise.resolve(resolveValue).then(onFulfilled);
+				},
+				quiet: () => Promise.resolve({
+					exitCode: response.exitCode,
+					stderr: response.stderr,
+				}),
+				text: () => Promise.resolve(response.stdout),
+				throws: () => {
 					if (response.exitCode !== 0) {
 						throw new Error(
 							response.stderr ||
@@ -60,14 +83,13 @@ const createMockShell = (
 						stderr: response.stderr,
 						exitCode: response.exitCode,
 					};
-				}),
+				},
 			};
-		},
-	);
-	return Object.assign(mockFn, {
-		quiet: vi.fn().mockReturnValue({ exitCode: 0 }),
-		text: vi.fn().mockReturnValue(""),
-		throws: vi.fn().mockResolvedValue(undefined),
+			return thenable;
+		};
+
+		// Return a thenable that resolves to the result with all properties
+		return createThenable(baseResult);
 	});
 };
 
