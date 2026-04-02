@@ -1,5 +1,5 @@
-import { generateSessionMarkdown } from "./lib/session-generator";
-import { backfillAllSessions } from "./lib/backfill";
+import { generateSessionMarkdown } from "../lib/processing/session-generator";
+import { backfillAllSessions } from "../lib/queue/backfill";
 import { existsSync, readFileSync, readdirSync } from "fs";
 import { join } from "path";
 

@@ -1,5 +1,5 @@
-import { queue, signalSessionActivity } from "./lib/memory-queue";
-import "./lib/memory-worker";
+import { queue, signalSessionActivity } from "../lib/queue/memory-queue";
+import "../lib/queue/memory-worker";
 
 async function waitForProcessing(timeoutMs: number = 10000): Promise<void> {
   const startTime = Date.now();

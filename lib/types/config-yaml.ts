@@ -8,7 +8,7 @@ import { existsSync, readFileSync } from "fs";
 import yaml from "js-yaml";
 import path from "path";
 import { z } from "zod";
-import type { EmbeddingProvider } from "../../types";
+import type { EmbeddingProvider } from "../types";
 
 // ============================================
 // YAML Config Schemas
@@ -289,7 +289,7 @@ export function getConfigPath(workdir: string): string {
 export function mergeWithLegacyConfig(
 	yamlConfig: MemsearchYamlConfig | null,
 	legacyConfig: ReturnType<
-		typeof import("../../config").loadConfig
+		typeof import("../config").loadConfig
 	> extends Promise<infer R>
 		? R
 		: never,

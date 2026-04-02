@@ -1,5 +1,5 @@
-import "./lib/memory-worker";
-import { queue } from "./lib/memory-queue";
+import "../lib/queue/memory-worker";
+import { queue } from "../lib/queue/memory-queue";
 
 console.log("Worker should be running...");
 console.log("(Will stay alive for 30 seconds)");

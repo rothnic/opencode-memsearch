@@ -1,4 +1,4 @@
-import { signalSessionActivity } from "./lib/memory-queue";
+import { signalSessionActivity } from "../lib/queue/memory-queue";
 async function add() {
   await signalSessionActivity(
     "session-created",

@@ -1,4 +1,4 @@
-import { backfillAllSessions } from "./lib/backfill";
+import { backfillAllSessions } from "../lib/queue/backfill";
 import { existsSync, readdirSync, statSync } from "fs";
 import { join } from "path";
 

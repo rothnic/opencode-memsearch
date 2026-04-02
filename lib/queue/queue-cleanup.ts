@@ -47,7 +47,7 @@ export async function cleanupLegacyJobs(): Promise<{
           try {
             const data = unpack(job.data);
             if (data.type === jobType) {
-              db.run("DELETE FROM jobs WHERE id = ?", job.id);
+              db.run("DELETE FROM jobs WHERE id = ?", [job.id]);
               deleted++;
             }
           } catch {

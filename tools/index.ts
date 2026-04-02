@@ -24,7 +24,7 @@ export const memIndexTool = tool({
 
 			// Use the CLI wrapper to perform indexing. The wrapper already
 			// handles shell invocation and errors.
-			await cli.index(path, { recursive, collection });
+			await cli.index(path, { collection });
 
 			// After indexing, fetch stats to return a concise summary.
 			const stats = await cli.stats();

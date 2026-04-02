@@ -44,7 +44,7 @@ export interface TagExtractorConfig {
 	/** Default tag list to use when no memory type specified */
 	defaultTags: string[];
 	/** Per-memory-type tag configurations */
-	memoryTypeTags?: Record<string, TagListConfig[]>;
+	memoryTypeTags: Record<string, TagListConfig[]>;
 	/** Custom tags added at runtime */
 	customTags?: string[];
 	/** Minimum confidence threshold (0.0-1.0) */
@@ -351,9 +351,11 @@ function detectFromExtensions(content: string): Map<string, number> {
 
 	// Look for file paths with extensions
 	const filePathRegex = /\b[\w./-]+\.(\w+)\b/g;
-	let match;
+	let match: RegExpExecArray | null = null;
 
-	while ((match = filePathRegex.exec(content)) !== null) {
+	while (true) {
+		match = filePathRegex.exec(content);
+		if (match === null) break;
 		const ext = "." + match[1].toLowerCase();
 		const technologies = EXTENSION_PATTERNS[ext];
 
@@ -487,10 +489,13 @@ export class TagExtractor {
 		}
 
 		// Add memory-type specific tags
-		if (memoryType && this.config.memoryTypeTags[memoryType]) {
-			for (const tagList of this.config.memoryTypeTags[memoryType]) {
-				for (const tag of tagList.tags) {
-					tags.add(tag.toLowerCase());
+		if (memoryType) {
+			const tagLists = this.config.memoryTypeTags[memoryType];
+			if (tagLists) {
+				for (const tagList of tagLists) {
+					for (const tag of tagList.tags) {
+						tags.add(tag.toLowerCase());
+					}
 				}
 			}
 		}
@@ -694,6 +699,7 @@ export class TagExtractor {
 export function extractTechnologyTags(content: string): TagExtractionResult {
 	const extractor = new TagExtractor({
 		defaultTags: [],
+		memoryTypeTags: {},
 		minConfidence: 0.1,
 		enableHeuristics: true,
 	});

@@ -3,7 +3,7 @@
  * @description Test queue priority processing - adds jobs with different priorities and verifies processing order
  */
 
-import { queue, signalSessionActivity, type MemoryJob } from "./lib/memory-queue";
+import { queue, signalSessionActivity, type MemoryJob } from "../lib/queue/memory-queue";
 import { mkdirSync } from "fs";
 import { join } from "path";
 

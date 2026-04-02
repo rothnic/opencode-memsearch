@@ -1,11 +1,13 @@
 {
-  "active_plan": "/Users/nroth/workspace/opencode-memsearch/.weave/plans/memsearch-cleanup.md",
-  "started_at": "2026-04-01T10:31:57.863Z",
+  "active_plan": "/Users/nroth/workspace/opencode-memsearch/.weave/plans/memsearch-completion.md",
+  "started_at": "2026-04-02T15:30:28.901Z",
   "session_ids": [
-    "ses_3507ee785ffehWJPG9Miqutet2"
+    "ses_2b494b5d0ffe2oQgM8xIae9tI0"
   ],
-  "plan_name": "memsearch-cleanup",
+  "plan_name": "memsearch-completion",
   "agent": "tapestry",
-  "start_sha": "046b77e47aa3dec8810b430a0a53f4b497cef7e3",
+  "start_sha": "f90294c6d406dcc74184189187dcab4b11300b74",
+  "continuation_completed_snapshot": 0,
+  "stale_continuation_count": 0,
   "paused": true
 }

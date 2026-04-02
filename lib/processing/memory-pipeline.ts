@@ -1,6 +1,6 @@
-import { MemsearchCLI, MemsearchTimeoutError } from "../../cli-wrapper";
-import { loadConfig } from "../../config";
-import { markSessionProcessed, state } from "../../state";
+import { MemsearchCLI, MemsearchTimeoutError } from "../cli-wrapper";
+import { loadConfig } from "../config";
+import { markSessionProcessed, state } from "../state";
 import { checkForUnprocessedSessions } from "../queue/backfill";
 import { join } from "path";
 import { type MemoryJob } from "../queue/memory-queue";

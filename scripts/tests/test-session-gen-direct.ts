@@ -1,4 +1,4 @@
-import { generateSessionMarkdown } from "./lib/session-generator";
+import { generateSessionMarkdown } from "../lib/processing/session-generator";
 import { existsSync, readdirSync } from "fs";
 import { join } from "path";
 

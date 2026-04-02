@@ -1,4 +1,4 @@
-import { backfillAllSessions } from "./lib/backfill";
+import { backfillAllSessions } from "../lib/queue/backfill";
 async function run() {
   console.log("Starting backfill...");
   const result = await backfillAllSessions();

@@ -1,4 +1,4 @@
-import { queue } from "../../lib/memory-queue";
+import { queue } from "../lib/queue/memory-queue";
 
 async function clear() {
 	try {

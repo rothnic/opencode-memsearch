@@ -8,7 +8,7 @@ import { $ } from "bun";
 import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
-type ShellExecutor = ReturnType<typeof $>;
+type ShellExecutor = typeof $;
 
 /**
  * Error codes for collection lifecycle operations
@@ -441,7 +441,7 @@ export class CollectionLifecycle {
 			// Use memsearch delete command - try common patterns
 			// First, try with collection flag
 			const deleteResult = await this
-				.shell`sh -c "memsearch delete --collection ${name}"`.throws();
+				.shell`sh -c "memsearch delete --collection ${name}"`;
 
 			// If we got here, deletion succeeded
 			if (untrack) {
@@ -558,11 +558,13 @@ export class CollectionLifecycle {
 
 						// Try to parse document count from output
 						try {
-							const parsed = JSON.parse(statsResult.stdout ?? "{}");
+							const stdoutStr = statsResult.stdout?.toString() ?? "{}";
+							const parsed = JSON.parse(stdoutStr);
 							documentCount = parsed.documentCount ?? tracked.documentCount;
 						} catch {
 							// Not JSON, try text parsing
-							const match = (statsResult.stdout ?? "").match(
+							const stdoutStr = statsResult.stdout?.toString() ?? "";
+							const match = stdoutStr.match(
 								/Document[s]?:\s*(\d+)/i,
 							);
 							if (match) {

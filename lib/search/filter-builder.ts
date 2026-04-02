@@ -42,7 +42,7 @@ export class FilterBuilderError extends Error {
 /**
  * Supported metadata fields for filtering
  */
-export type FilterField = "tags" | "technology" | "source_session";
+export type FilterField = "tags" | "technology" | "source_session" | "_or";
 
 /**
  * Supported comparison operators

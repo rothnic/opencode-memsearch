@@ -6,7 +6,7 @@
 
 import { $ } from "bun";
 
-type ShellExecutor = ReturnType<typeof $>;
+type ShellExecutor = typeof $;
 
 export type CollectionManagerErrorCode =
 	| "cli_not_found"
@@ -255,8 +255,8 @@ export class CollectionManager {
 		try {
 			// Use throws() to properly catch non-zero exit codes
 			const result = await this
-				.shell`sh -c "memsearch stats --collection ${name}"`.throws();
-			const output = result.stdout ?? "";
+				.shell`sh -c "memsearch stats --collection ${name}"`;
+			const output = result.stdout?.toString() ?? "";
 			const trimmed = output.trim();
 
 			// Parse stats output - could be JSON or plain text
@@ -367,16 +367,12 @@ export class CollectionManager {
 
 			// Write placeholder file
 			await this
-				.shell`sh -c "echo ${placeholderContent} > ${placeholderPath}"`.throws(
-				true,
-			);
+				.shell`sh -c "echo ${placeholderContent} > ${placeholderPath}"`;
 
 			try {
 				// Index the placeholder to create the collection
 				await this
-					.shell`sh -c "memsearch index ${placeholderPath} --collection ${name}"`.throws(
-					true,
-				);
+					.shell`sh -c "memsearch index ${placeholderPath} --collection ${name}"`;
 
 				// Clean up placeholder file
 				await this.shell`sh -c "rm -f ${placeholderPath}"`.quiet();

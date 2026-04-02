@@ -1,6 +1,6 @@
 import Database from "bun:sqlite";
 import { join } from "path";
-import { generateSessionMarkdown } from "./lib/session-generator";
+import { generateSessionMarkdown } from "../lib/processing/session-generator";
 
 const dbPath = join(
   process.env.HOME || "",
