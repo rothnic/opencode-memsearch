@@ -1,0 +1,142 @@
+# .ls-lint.yml - Strict deny-first configuration
+# 
+# This configuration uses ls-lint's exists directive:
+#   exists:0  = File/directory MUST NOT exist (forbidden)
+#   exists:1  = File/directory MUST exist (required)
+#
+# Standard ls-lint v2.3+ supports exists:0 for forbidden items
+
+ls:
+  # ROOT LEVEL - Most restrictive
+  # Only explicitly whitelisted items are allowed
+  .:
+    # === REQUIRED FILES (MUST exist) ===
+    README.md: exists:1
+    AGENTS.md: exists:1
+    
+    # === OPTIONAL BUT ALLOWED FILES ===
+    # License files
+    LICENSE: exists:0
+    LICENSE.md: exists:0
+    
+    # Contribution and changelog
+    CONTRIBUTING.md: exists:0
+    CHANGELOG.md: exists:0
+    
+    # Package configuration
+    package.json: exists:0
+    tsconfig.json: exists:0
+    
+    # Git and tooling
+    .gitignore: exists:0
+    .ls-lint.yml: exists:0
+    lefthook.yml: exists:0
+    
+    # MemSearch configs (both are different and valid)
+    .memsearch.toml: exists:0
+    .memsearch.yaml: exists:0
+    
+    # Lock file
+    bun.lock: exists:0
+    
+    # === REQUIRED DIRECTORIES (MUST exist) ===
+    src: exists:1
+    
+    # === OPTIONAL BUT ALLOWED DIRECTORIES ===
+    docs: exists:0
+    scripts: exists:0
+    config: exists:0
+    
+    # Tool directories
+    cli-tools: exists:0
+    opencode-hooks: exists:0
+    
+    # Dot directories
+    .github: exists:0
+    .memsearch: exists:0
+    .opencode: exists:0
+    .ruff_cache: exists:0
+    .sisyphus: exists:0
+    .weave: exists:0
+    
+    # === FORBIDDEN ITEMS ===
+    # No other markdown files at root (only README, AGENTS, CONTRIBUTING, CHANGELOG)
+    .md: exists:0
+    
+    # No TypeScript files at root (entry point should be in src/)
+    .ts: exists:0
+    
+    # No JavaScript files at root
+    .js: exists:0
+    
+    # No text files at root
+    .txt: exists:0
+  
+  # SUBDIRECTORY RULES - More permissive
+  # These apply to files within the named directories
+  
+  src:
+    # Source files must be kebab-case
+    .ts: kebabcase
+    .tsx: kebabcase
+    .js: kebabcase
+    # Subdirectories must be kebab-case
+    .dir: kebabcase
+    # AGENTS.md and README.md allowed but not required in subdirs
+    AGENTS.md: exists:0
+    README.md: exists:0
+    # No other markdown files in src/
+    .md: exists:0
+  
+  scripts:
+    .ts: kebabcase
+    .js: kebabcase
+    .sh: kebabcase
+    .py: kebabcase
+    .dir: kebabcase
+    AGENTS.md: exists:0
+    README.md: exists:0
+    .md: exists:0
+  
+  cli-tools:
+    .ts: kebabcase
+    .js: kebabcase
+    .dir: kebabcase
+    AGENTS.md: exists:0
+    README.md: exists:0
+    .md: exists:0
+  
+  opencode-hooks:
+    .ts: kebabcase
+    .js: kebabcase
+    .dir: kebabcase
+    AGENTS.md: exists:0
+    README.md: exists:0
+    .md: exists:0
+  
+  docs:
+    # Markdown files allowed in docs/ but must be kebab-case
+    .md: kebabcase
+    .dir: kebabcase
+  
+  config:
+    .yaml: kebabcase
+    .yml: kebabcase
+    .dir: kebabcase
+
+ignore:
+  - node_modules
+  - .git
+  - .ruff_cache
+  - .memsearch
+  - .sisyphus
+  - .maestro
+  - .weave
+  - .opencode
+  - logs
+  - memory
+  - memsearch_data
+  - tmpcd
+  - .DS_Store
+  - dist
+  - build
