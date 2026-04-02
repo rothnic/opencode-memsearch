@@ -22,7 +22,7 @@ dist/
 .idea/
 .vscode/
 
-# OpenCode
+# OpenCode - allow only memsearch example config
 .opencode/*
 !.opencode/memsearch.yaml.example
 .sisyphus/
@@ -33,10 +33,8 @@ bun.lockb
 # Package artifacts
 packages/*/node_modules/
 
-# memsearch - local config files (examples are tracked)
+# memsearch runtime data
 .memsearch/
-.memsearch.toml
-.memsearch.yaml
 
 # Secret scanning baseline (if using detect-secrets)
 .secrets.baseline
