@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": false,
   "type": "module",
-  "main": "index.ts",
-  "exports": "./index.ts",
+  "main": "src/main.ts",
+  "exports": "./src/main.ts",
   "description": "OpenCode plugin for memsearch semantic memory",
   "repository": {
     "type": "git",
@@ -42,11 +42,8 @@
     "typescript": "^5.2.2"
   },
   "files": [
-    "*.ts",
-    "hooks/",
-    "tools/",
+    "src/",
     "README.md",
-    "LICENSE",
-    "lib/"
+    "LICENSE.md"
   ]
 }

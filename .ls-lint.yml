@@ -1,21 +1,70 @@
+# .ls-lint.yml - Strict file naming configuration
+#
+# Enforces:
+# - Source files: kebab-case
+# - Special files: SCREAMING_SNAKE_CASE (README.md, AGENTS.md, LICENSE.md)
+# - Config files: kebab-case
+# - Documentation: kebab-case (in docs/)
+
 ls:
-  .md: screamingsnakecase  # Only for special files (README.md, LICENSE.md, etc.)
-  .ts: kebabcase
-  .tsx: kebabcase
-  .js: kebabcase
-  .json: kebabcase
-  .yml: kebabcase
-  .yaml: kebabcase
-  .toml: kebabcase
+  # ROOT LEVEL
+  .:
+    # Special documentation files (SCREAMING_SNAKE_CASE)
+    README.md: screamingsnakecase
+    AGENTS.md: screamingsnakecase
+    LICENSE.md: screamingsnakecase
+    CONTRIBUTING.md: screamingsnakecase
+    CHANGELOG.md: screamingsnakecase
+    
+    # Config files (kebab-case)
+    package.json: kebabcase
+    tsconfig.json: kebabcase
+    .gitignore: kebabcase
+    .ls-lint.yml: kebabcase
+    lefthook.yml: kebabcase
+    .memsearch.toml: kebabcase
+    .memsearch.yaml: kebabcase
+    bun.lock: kebabcase
+    
+    # Source files should NOT be at root (they go in src/)
+    .ts: kebabcase
+    .tsx: kebabcase
+    .js: kebabcase
+    
+    # Directories (kebab-case)
+    src: kebabcase
+    docs: kebabcase
+    scripts: kebabcase
+    config: kebabcase
+  
+  # SUBDIRECTORY RULES
+  src:
+    .ts: kebabcase
+    .tsx: kebabcase
+    .js: kebabcase
+    .dir: kebabcase
+  
+  scripts:
+    .ts: kebabcase
+    .js: kebabcase
+    .sh: kebabcase
+    .py: kebabcase
+    .dir: kebabcase
+  
+  docs:
+    .md: kebabcase
+    .dir: kebabcase
+  
+  config:
+    .yaml: kebabcase
+    .yml: kebabcase
+    .dir: kebabcase
 
 ignore:
   - node_modules
   - .git
-  - .roam
-  - dist
-  - build
-  - .memsearch
   - .ruff_cache
+  - .memsearch
   - .sisyphus
   - .maestro
   - .weave
@@ -25,4 +74,6 @@ ignore:
   - memsearch_data
   - tmpcd
   - .DS_Store
-  - docs/*.md  # Docs use kebab-case convention
+  - dist
+  - build
+  - "*.d.ts"
