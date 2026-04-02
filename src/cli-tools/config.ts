@@ -1,6 +1,6 @@
 import { tool } from "@opencode-ai/plugin";
-import { MemsearchCLI, MemsearchNotFoundError } from "../lib/cli-wrapper";
-import type { MemsearchConfig, MemsearchToolContext } from "../lib/types/index";
+import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
+import type { MemsearchConfig, MemsearchToolContext } from "../types/index";
 
 export const memConfigTool = tool({
 	description: "Get or set memsearch configuration values",

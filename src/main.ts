@@ -1,19 +1,19 @@
 import type { Plugin } from "@opencode-ai/plugin";
-import { onSessionCompacting } from "./hooks/session-compacting";
-import { onSessionCreated } from "./hooks/session-created";
-import { onSessionIdle } from "./hooks/session-idle";
-import { onSystemTransform } from "./hooks/system-transform";
-import { onToolExecuted } from "./hooks/tool-executed";
-import loadConfig from "./lib/config";
-import { shouldSkipSession } from "./lib/state";
-import { startBackfillInBackground } from "./lib/queue/backfill";
-import { setupRecurringJobs, signalSessionActivity } from "./lib/queue/memory-queue";
-import "./lib/queue/memory-worker";
-import { memIndexTool } from "./tools/index";
-import { memSearchTool } from "./tools/search";
-import { memWatchTool } from "./tools/watch";
-import { memCompactTool } from "./tools/compact";
-import { memExpandTool } from "./tools/expand";
+import { onSessionCompacting } from "./opencode-hooks/session-compacting";
+import { onSessionCreated } from "./opencode-hooks/session-created";
+import { onSessionIdle } from "./opencode-hooks/session-idle";
+import { onSystemTransform } from "./opencode-hooks/system-transform";
+import { onToolExecuted } from "./opencode-hooks/tool-executed";
+import loadConfig from "./config";
+import { shouldSkipSession } from "./state";
+import { startBackfillInBackground } from "./queue/backfill";
+import { setupRecurringJobs, signalSessionActivity } from "./queue/memory-queue";
+import "./queue/memory-worker";
+import { memIndexTool } from "./cli-tools/index";
+import { memSearchTool } from "./cli-tools/search";
+import { memWatchTool } from "./cli-tools/watch";
+import { memCompactTool } from "./cli-tools/compact";
+import { memExpandTool } from "./cli-tools/expand";
 import { $ } from "bun";
 import { basename } from "path";
 
@@ -35,7 +35,7 @@ async function getProjectDisplayName(directory: string): Promise<string> {
 }
 
 let initialized = false;
-let globalConfig: import("./lib/types/index").MemsearchConfig | null = null;
+let globalConfig: import("./types/index").MemsearchConfig | null = null;
 
 // Track which projects have had their initial backfill run
 const backfillInitializedProjects = new Set<string>();
@@ -71,7 +71,7 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 	// Build hooks object conditionally based on feature flags
 	const hooks: Record<string, any> = {
 		"session.created": onSessionCreated,
-		"session.deleted": (await import("./hooks/session-deleted"))
+		"session.deleted": (await import("./opencode-hooks/session-deleted"))
 			.onSessionDeleted,
 		"experimental.session.compacting": onSessionCompacting,
 		"tool.execute.after": onToolExecuted,
@@ -95,12 +95,12 @@ const plugin: Plugin = async ({ project, client, $, directory, worktree }) => {
 			"mem-watch": memWatchTool,
 			"mem-compact": memCompactTool,
 			"mem-expand": memExpandTool,
-			"mem-version": (await import("./tools/version")).default,
-			"mem-reset": (await import("./tools/reset")).default,
-			"mem-stats": (await import("./tools/stats")).default,
-			"mem-config": (await import("./tools/config")).default,
-			"mem-transcript": (await import("./tools/transcript")).default,
-			"mem-doctor": (await import("./tools/doctor")).default,
+			"mem-version": (await import("./cli-tools/version")).default,
+			"mem-reset": (await import("./cli-tools/reset")).default,
+			"mem-stats": (await import("./cli-tools/stats")).default,
+			"mem-config": (await import("./cli-tools/config")).default,
+			"mem-transcript": (await import("./cli-tools/transcript")).default,
+			"mem-doctor": (await import("./cli-tools/doctor")).default,
 		},
 		hook: hooks,
 		event: async ({ event }) => {

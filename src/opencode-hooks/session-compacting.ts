@@ -1,5 +1,5 @@
 import type { PluginInput } from "@opencode-ai/plugin";
-import { MemsearchCLI } from "../lib/cli-wrapper";
+import { MemsearchCLI } from "../cli-wrapper";
 
 const cli = new MemsearchCLI();
 

@@ -1,7 +1,7 @@
 import { tool } from "@opencode-ai/plugin";
-import { MemsearchCLI, MemsearchNotFoundError } from "../lib/cli-wrapper";
-import { state } from "../lib/state";
-import type { MemsearchToolContext } from "../lib/types/index";
+import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
+import { state } from "../state";
+import type { MemsearchToolContext } from "../types/index";
 
 export const memWatchTool = tool({
 	description: "Start a memsearch filesystem watcher for a path",

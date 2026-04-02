@@ -1,6 +1,6 @@
 import { tool } from "@opencode-ai/plugin";
-import { MemsearchCLI, MemsearchNotFoundError } from "../lib/cli-wrapper";
-import type { ExpandResult, MemsearchToolContext } from "../lib/types/index";
+import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
+import type { ExpandResult, MemsearchToolContext } from "../types/index";
 
 export const memExpandTool = tool({
 	description:

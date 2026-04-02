@@ -1,11 +1,11 @@
 import { tool } from "@opencode-ai/plugin";
-import { MemsearchCLI, MemsearchNotFoundError } from "../lib/cli-wrapper";
+import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
 import type {
 	MemsearchToolContext,
 	SearchOptions,
 	SearchResponse,
 	SearchResult,
-} from "../lib/types/index";
+} from "../types/index";
 
 export const memSearchTool = tool({
 	description:

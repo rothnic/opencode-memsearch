@@ -1,7 +1,7 @@
 import { tool } from "@opencode-ai/plugin";
-import { MemsearchCLI, MemsearchNotFoundError } from "../lib/cli-wrapper";
-import pkg from "../package.json";
-import type { MemsearchToolContext } from "../lib/types/index";
+import { MemsearchCLI, MemsearchNotFoundError } from "../cli-wrapper";
+import pkg from "../../package.json";
+import type { MemsearchToolContext } from "../types/index";
 
 export default tool({
 	description: "Return plugin and memsearch CLI versions",
